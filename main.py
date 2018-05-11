@@ -16,14 +16,15 @@ class Stages:
     # Stages:
     do_print = True
     do_get_raw_data = True
+    do_filter_features = True
     do_load_and_impute = True
     do_scale = True
     do_scale_load_file = True
-    do_feature_selection = True
+    do_feature_selection = False
     do_feature_selection_load_data = False
-    do_removeAbove95Corr = True
-    do_sfs = True
-    do_relief = True
+    do_removeAbove95Corr = False
+    do_sfs = False
+    do_relief = False
     get_correlations = False
 
 amount_of_sets = 1
@@ -59,6 +60,13 @@ def main():
             # Impute missing data
             # Impute outlier and typos
             secondStepPrep_dict[i].loadData(Consts.listAdditionalDataPreparation)
+            if Stages.do_filter_features:
+                secondStepPrep_dict[i].filterFeatures(Consts.listAdditionalDataPreparation)
+                secondStepPrep_dict[i].trainData.to_csv(
+                    RAW_SPLIT_FILE_PATH.format(i, "X_train", "{}Filtered.csv".format(i)))
+                secondStepPrep_dict[i].valData.to_csv(RAW_SPLIT_FILE_PATH.format(i, "X_val", "{}Filtered.csv".format(i)))
+                secondStepPrep_dict[i].testData.to_csv(
+                    RAW_SPLIT_FILE_PATH.format(i, "X_test", "{}Filtered.csv".format(i)))
             secondStepPrep_dict[i]._changeStringToValues(Consts.listAdditionalDataPreparation)
 
             secondStepPrep_dict[i] = EDP(RAW_SPLIT_FILE_PATH.format(i, "X_train{}{}".format(i, 'Numeric'), ''),
@@ -70,6 +78,8 @@ def main():
 
 
             secondStepPrep_dict[i].loadData(Consts.listAdditionalDataPreparation)
+
+
 
             # secondStepPrep_dict[i]._changeStringToValues(Consts.listAdditionalDataPreparation)
 
