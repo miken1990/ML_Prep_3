@@ -72,6 +72,17 @@ class ElectionsDataPreperation:
             self.valLabels = read_csv(valFileNameY, header=0)
 
 
+    def filterFeatures(self, lDataTypes = []):
+        """filters unnecessary features from the dataset
+        """
+        listOrderedSelectedFeatures = [feature for feature in self.trainData.columns if feature in Consts.setSelectedFeatures]
+        self.trainData = self.trainData[listOrderedSelectedFeatures]
+        if 'validation' in lDataTypes:
+            self.valData = self.valData[listOrderedSelectedFeatures]
+        if 'test' in lDataTypes:
+            self.testData = self.testData[listOrderedSelectedFeatures]
+
+
     def _changeStringToValues(self, lDataTypes):
         """lDataTypes is a list with following values['test', 'validation'], the list determines if the
         _changeStringToValues will happen on the test and validation sets.
@@ -101,7 +112,7 @@ class ElectionsDataPreperation:
         self._fillHotSpot(data, Consts.listSymbolicColumns)
         # remove previous columns containing strings
         data = data.drop(Consts.listNonNumeric, axis=1)
-        data = data.drop(data.columns[0], axis=1)
+        # data = data.drop(data.columns[0], axis=1)
         ElectionsDataPreperation.fixNegativeVals(data)
         Path = sInputFilePath + 'Numeric.csv'
         data.to_csv(Path)
@@ -188,17 +199,19 @@ class ElectionsDataPreperation:
     def _fillBoolValues(self, data):
         """ replaces Bool columns with 1, 0 and NaN
         """
-        data['Looking_at_poles_int'] = data['Looking_at_poles_results'].map({'Yes': 1, 'No': -1, 'NA': np.nan})
-        data['Married_int'] = data['Married'].map({'Yes': 1, 'No': -1, 'NA': np.nan})
-        data['Gender_int'] = data['Gender'].map({'Male': 1, 'Female': -1, 'NA': np.nan})
-        data['Voting_time_int'] = data['Voting_Time'].map({'After_16:00': 1, 'By_16:00': -1, 'NA': np.nan})
-        data['Financial_agenda_matters_int'] = data['Financial_agenda_matters'].map({'Yes': 1, 'No': -1, 'NA': np.nan})
+        # no boolean features at all
+        pass
+        # data['Looking_at_poles_int'] = data['Looking_at_poles_results'].map({'Yes': 1, 'No': -1, 'NA': np.nan})
+        # data['Married_int'] = data['Married'].map({'Yes': 1, 'No': -1, 'NA': np.nan})
+        # data['Gender_int'] = data['Gender'].map({'Male': 1, 'Female': -1, 'NA': np.nan})
+        # data['Voting_time_int'] = data['Voting_Time'].map({'After_16:00': 1, 'By_16:00': -1, 'NA': np.nan})
+        # data['Financial_agenda_matters_int'] = data['Financial_agenda_matters'].map({'Yes': 1, 'No': -1, 'NA': np.nan})
 
     def _fillTrioValues(self, data):
         data['Will_vote_only_large_party_int'] = data['Will_vote_only_large_party'].map(
             {'Yes': 1, 'Maybe': 0, 'No': -1, 'NA': np.nan})
-        data['Age_group_int'] = data['Age_group'].map(
-            {'Below_30': -1, '30-45': 0, '45_and_up': 1, 'NA': np.nan})
+        # data['Age_group_int'] = data['Age_group'].map(
+        #     {'Below_30': -1, '30-45': 0, '45_and_up': 1, 'NA': np.nan})
 
     def _fillHotSpot(self, data, featureList):
         for feature in featureList:
@@ -292,8 +305,8 @@ class DataSplit:
         X_train_second, X_test_second, y_train_second, y_test_second = train_test_split(self.data, self.labels,
                                                                                         train_size=0.85,
                                                                                         shuffle=True,
-                                                                                        random_state=376674226,
-                                                                                        stratify=self.labels)
+                                                                                        random_state=376674226)
+
 
         X_train_second, X_val_second, y_train_second, y_val_second = train_test_split(X_train_second,
                                                                                       y_train_second,
