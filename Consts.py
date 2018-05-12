@@ -1,3 +1,4 @@
+from enum import Enum
 
 setSelectedFeatures = {
     'Number_of_valued_Kneset_members',
@@ -113,6 +114,22 @@ listFixNegateVals = [feature for feature in _listFixNegateVals if feature in set
 
 listAdditionalDataPreparation = ["validation", "test", ""]
 
+class FileSubNames(Enum):
+    X_TRAIN = '/X_train'
+    X__VAL = '/X_val'
+    X_TEST = '/X_test'
+    Y_TRAIN = '/Y_train'
+    Y_VAL = '/Y_val'
+    Y_TEST = '/Y_test'
+
+class FileNames(Enum):
+    FROM_INTERNET = ""
+    RAW_FILE_PATH = 'ElectionsData.csv'
+    RAW_AND_SPLITED = "datasets/{}/raw_splited/{}{}.csv"
+    RAW_AND_FILTERED  = "datasets/{}/raw_and_filtered/{}{}.csv"
+    FILTERED_AND_NUMERIC_NAN = "datasets/{}/filtered_and_numeric_nan/{}{}.csv"
+    FILTERED_AND_NUMERIC_NONAN = "datasets/{}/filtered_and_numeric_nan/{}{}.csv"
+    FILTERED_AND_SCALED = "datasets/{}/filtered_and_scaled/{}{}.csv"
 
 inf = 10000
 RAW_FILE_PATH = 'ElectionsData.csv'
