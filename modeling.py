@@ -63,16 +63,16 @@ class Modeling:
         saves a list of tuples: (classifier, name) in self.clfName
         """
         self.clfName = []
-        if Consts.Classifiers.TREE.value in classifier_type_list:
+        if Consts.ClassifierTypes.TREE.value in classifier_type_list:
             decisionTreeClf = DecisionTreeClassifier(criterion='entropy', random_state=Consts.listRandomStates[0],
                                                      max_leaf_nodes=Consts.maxLeafNodes)
             decisionTreeClf.fit(self.trainData, self.trainLabel)
-            self.clfName.append((decisionTreeClf, Consts.Classifiers.TREE.value))
+            self.clfName.append((decisionTreeClf, Consts.ClassifierTypes.TREE.value))
 
-        if Consts.Classifiers.SVM.value in classifier_type_list:
+        if Consts.ClassifierTypes.SVM.value in classifier_type_list:
             svmClf = SVC(random_state=Consts.listRandomStates[0])
             svmClf.fit(self.trainData, self.trainLabel)
-            self.clfName.append((svmClf, Consts.Classifiers.SVM.value))
+            self.clfName.append((svmClf, Consts.ClassifierTypes.SVM.value))
 
     def crossValEval(self, scoreMetric: str):
         """
@@ -110,5 +110,7 @@ class Modeling:
     def classify_test_and_compute_results(self, classifiers_score):
         pass
 
+    def concat_train_and_val(self) -> (pd.DataFrame, pd.DataFrame):
+        return pd.concat([self.trainData, self.valData]), pd.concat([self.trainLabel, self.valLabel])
 
 print(Consts.FileSubNames.X_TRAIN.value)
