@@ -15,11 +15,11 @@ from sfs import sfsAux
 class Stages:
     # Stages:
     do_print = True
-    do_get_raw_data = True
-    do_filter_features = True
-    do_load_and_impute = True
+    do_get_raw_data = False
+    do_filter_features = False
+    do_swap_to_numeric = False
+    do_fix_nan_and_outliers = False
     do_scale = True
-    do_scale_load_file = False
     do_feature_selection = False
     do_feature_selection_load_data = False
     do_removeAbove95Corr = False
@@ -30,6 +30,18 @@ class Stages:
 
 amount_of_sets = 1
 
+def load_edp_from(base: str, set: int) -> EDP:
+    edp = EDP(
+        base.format(set, Consts.FileSubNames.X_TRAIN.value),
+        base.format(set, Consts.FileSubNames.X_VAL.value),
+        base.format(set, Consts.FileSubNames.X_TEST.value),
+        base.format(set, Consts.FileSubNames.Y_TRAIN.value),
+        base.format(set, Consts.FileSubNames.Y_VAL.value),
+        base.format(set, Consts.FileSubNames.Y_TEST.value)
+    )
+    edp.loadData()
+
+    return edp
 
 def create_files():
     for d in Consts.DirNames:
@@ -43,6 +55,11 @@ def create_files():
                     os.mkdir(d.value.format(i))
 
 
+def log(msg):
+    if Stages.do_print:
+        print(msg)
+
+
 def main():
     create_files()
 
@@ -50,80 +67,50 @@ def main():
     # we need to bring the initial file only once. while working on it, it is rather efficient to work on local files
     # yet we'd like to be able to get the files and fall threw these steps again if needed.
     if Stages.do_get_raw_data:
-        if Stages.do_print:
-            print("Stage 1: Importing the data")
+        log("Stage 1: Importing the data")
         ds = DataSplit(Consts.FileNames.RAW_FILE_PATH.value)
         ds.saveDataSetsToCsv()
 
     # SECOND STEP: Prepare the data for work.
     secondStepPrep_dict = dict()
     scaleData_dict = dict()
-    if Stages.do_load_and_impute:
 
-        if Stages.do_print:
-            print("Stage 2: Fixing nan and outliers")
+    if Stages.do_filter_features:
+        log("Stage 2: Filtering Labels")
 
         for i in range(1, amount_of_sets + 1):
             # start the preparing data class
-            secondStepPrep_dict[i] = EDP(Consts.FileNames.RAW_AND_SPLITED.value.format(i, "X_train", i),
-                                         Consts.FileNames.RAW_AND_SPLITED.value.format(i, "X_val", i),
-                                         Consts.FileNames.RAW_AND_SPLITED.value.format(i, "X_test", i),
-                                         Consts.FileNames.RAW_AND_SPLITED.value.format(i, "Y_train", i),
-                                         Consts.FileNames.RAW_AND_SPLITED.value.format(i, "Y_val", i),
-                                         Consts.FileNames.RAW_AND_SPLITED.value.format(i, "Y_test", i))
-            # Load the data from csv.
-            # Swap strings to numeric values
-            # Impute missing data
-            # Impute outlier and typos
-            secondStepPrep_dict[i].loadData(Consts.listAdditionalDataPreparation)
-            if Stages.do_filter_features:
-                secondStepPrep_dict[i].filterFeatures(Consts.listAdditionalDataPreparation)
-                secondStepPrep_dict[i].trainData.to_csv(
-                    Consts.FileNames.RAW_AND_FILTERED.value.format(i, Consts.FileSubNames.X_TRAIN.value))
-                secondStepPrep_dict[i].valData.to_csv(
-                    Consts.FileNames.RAW_AND_FILTERED.value.format(i, Consts.FileSubNames.X_VAL.value))
-                secondStepPrep_dict[i].testData.to_csv(
-                    Consts.FileNames.RAW_AND_FILTERED.value.format(i, Consts.FileSubNames.X_TEST.value))
+            secondStepPrep_dict[i] = load_edp_from(Consts.FileNames.RAW_AND_SPLITED.value, i)
+            secondStepPrep_dict[i].filterFeatures(list(Consts.DataTypes))
 
-            secondStepPrep_dict[i]._changeStringToValues(Consts.listAdditionalDataPreparation)
+            secondStepPrep_dict[i].save_data(Consts.FileNames.RAW_AND_FILTERED.value, i)
+            secondStepPrep_dict[i].save_labels(Consts.FileNames.RAW_AND_FILTERED.value, i)
 
-            secondStepPrep_dict[i] = EDP(
-                Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(i, Consts.FileSubNames.X_TRAIN.value),
-                Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(i, Consts.FileSubNames.X_VAL.value),
-                Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(i, Consts.FileSubNames.X_TEST.value),
-                Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(i, Consts.FileSubNames.Y_TRAIN.value),
-                Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(i, Consts.FileSubNames.Y_VAL.value),
-                Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(i, Consts.FileSubNames.Y_TEST.value)
-            )
+    if Stages.do_swap_to_numeric:
+        log("Stage 3: Swapping strings to numeric values")
 
-            secondStepPrep_dict[i].loadData(Consts.listAdditionalDataPreparation)
+        for i in range(1, amount_of_sets + 1):
+            # start the preparing data class
+            secondStepPrep_dict[i] = load_edp_from(Consts.FileNames.RAW_AND_FILTERED.value, i)
+            secondStepPrep_dict[i]._changeStringToValues(list(Consts.DataTypes))
 
-            # secondStepPrep_dict[i]._changeStringToValues(Consts.listAdditionalDataPreparation)
+    if Stages.do_fix_nan_and_outliers:
 
-            secondStepPrep_dict[i]._dataImpute(secondStepPrep_dict[i].trainData, secondStepPrep_dict[i].trainData,
-                                               secondStepPrep_dict[i].sInputFileTrain)
+        log("Stage 4: Fixing nan and outliers")
 
-            secondStepPrep_dict[i]._dataImpute(secondStepPrep_dict[i].trainData, secondStepPrep_dict[i].valData,
-                                               secondStepPrep_dict[i].sInputFileVal)
+        for i in range(1, amount_of_sets + 1):
 
-            secondStepPrep_dict[i]._dataImpute(secondStepPrep_dict[i].trainData, secondStepPrep_dict[i].testData,
-                                               secondStepPrep_dict[i].sInputFileTest)
+            secondStepPrep_dict[i] = load_edp_from(Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value, i)
+
+            secondStepPrep_dict[i].fix_nan_and_outliers()
+            secondStepPrep_dict[i].save_labels(Consts.FileNames.FILTERED_AND_NUMERIC_NONAN.value, i)
+
 
     if Stages.do_scale:
-        if Stages.do_print:
-            print("Stage 3: Scale the data")
+        log("Stage 5: Scale the data")
         for i in range(1, amount_of_sets + 1):
             # start the preparing data class
-            if Stages.do_scale_load_file:
-                secondStepPrep_dict[i] = EDP(
-                    Consts.FileNames.FILTERED_AND_NUMERIC_NONAN.value.format(i, Consts.FileSubNames.X_TRAIN.value),
-                    Consts.FileNames.FILTERED_AND_NUMERIC_NONAN.value.format(i, Consts.FileSubNames.X_VAL.value),
-                    Consts.FileNames.FILTERED_AND_NUMERIC_NONAN.value.format(i, Consts.FileSubNames.X_TEST.value),
-                    Consts.FileNames.FILTERED_AND_NUMERIC_NONAN.value.format(i, Consts.FileSubNames.Y_TRAIN.value),
-                    Consts.FileNames.FILTERED_AND_NUMERIC_NONAN.value.format(i, Consts.FileSubNames.Y_VAL.value),
-                    Consts.FileNames.FILTERED_AND_NUMERIC_NONAN.value.format(i, Consts.FileSubNames.Y_TEST.value)
-                )
-                secondStepPrep_dict[i].loadData(Consts.listAdditionalDataPreparation)
+            secondStepPrep_dict[i] = load_edp_from(Consts.FileNames.FILTERED_AND_NUMERIC_NONAN.value, i)
 
             initial_corr = secondStepPrep_dict[i].trainData.corr()
             if Stages.get_correlations:
@@ -135,15 +122,8 @@ def main():
             scaleData_dict[i].scale_test(secondStepPrep_dict[i].valData)
             scaleData_dict[i].scale_test(secondStepPrep_dict[i].testData)
             # scaleData_dict[i].scale_test(secondStepPrep_dict[i].testData)
-            secondStepPrep_dict[i].trainData.to_csv(
-                Consts.FileNames.FILTERED_AND_SCALED.value.format(i, Consts.FileSubNames.X_TRAIN.value)
-            )
-            secondStepPrep_dict[i].valData.to_csv(
-                Consts.FileNames.FILTERED_AND_SCALED.value.format(i, Consts.FileSubNames.X_VAL.value)
-            )
-            secondStepPrep_dict[i].testData.to_csv(
-                Consts.FileNames.FILTERED_AND_SCALED.value.format(i, Consts.FileSubNames.X_TEST.value)
-            )
+            secondStepPrep_dict[i].save_data(Consts.FileNames.FILTERED_AND_SCALED.value, i)
+            secondStepPrep_dict[i].save_labels(Consts.FileNames.FILTERED_AND_SCALED.value, i)
 
             second_corr = secondStepPrep_dict[i].trainData.corr()
             if Stages.get_correlations:
@@ -152,34 +132,27 @@ def main():
 
     if Stages.do_feature_selection:
         if Stages.do_print:
-            print("Stage 4: Selecting relevant features")
+            print("Stage 6: Selecting relevant features")
         # relief + sfs + correlation matrix
         for i in range(1, amount_of_sets + 1):
             # load the data from the previous stage
             if Stages.do_feature_selection_load_data:
-                secondStepPrep_dict[i] = EDP(
-                    Consts.FileNames.FILTERED_AND_SCALED.value.format(i, Consts.FileSubNames.X_TRAIN.value),
-                    Consts.FileNames.FILTERED_AND_SCALED.value.format(i, Consts.FileSubNames.X_VAL.value),
-                    Consts.FileNames.FILTERED_AND_SCALED.value.format(i, Consts.FileSubNames.X_TEST.value),
-                    Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(i, Consts.FileSubNames.Y_TRAIN.value),
-                    Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(i, Consts.FileSubNames.Y_VAL.value),
-                    Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(i, Consts.FileSubNames.Y_TEST.value)
-                )
+                secondStepPrep_dict[i] = load_edp_from(Consts.FileNames.FILTERED_AND_SCALED.value, i)
 
-                secondStepPrep_dict[i].loadData(Consts.listAdditionalDataPreparation)
-            secondStepPrep_dict[i].trainLabels = secondStepPrep_dict[i].trainLabels[["Vote"]]
-            secondStepPrep_dict[i].valLabels = secondStepPrep_dict[i].valLabels[["Vote"]]
-            secondStepPrep_dict[i].testLabels = secondStepPrep_dict[i].testLabels[["Vote"]]
+            # TODO: Alon - Mike what's the meaning of the following lines?
+            secondStepPrep_dict[i].trainLabels = secondStepPrep_dict[i].trainLabels[[Consts.VOTE_STR]]
+            secondStepPrep_dict[i].valLabels = secondStepPrep_dict[i].valLabels[[Consts.VOTE_STR]]
+            secondStepPrep_dict[i].testLabels = secondStepPrep_dict[i].testLabels[[Consts.VOTE_STR]]
 
             if Stages.do_relief:
-                relief_dir = 'datasets\\{}\\'.format(i)
+                relief_dir = Consts.DirNames.SUMMARY.value.format(i)
                 N = 100
                 tau = 0
 
                 relief_chosen_set = relief.relief_alg(secondStepPrep_dict[i].trainData,
                                                       secondStepPrep_dict[i].trainLabels, N, tau)
                 pd.DataFrame([f for f in relief_chosen_set]).to_csv(
-                    relief_dir + "N_{}_tau_{}.csv".format(N, tau))
+                    relief_dir + "/N_{}_tau_{}.csv".format(N, tau))
                 secondStepPrep_dict[i].trainData = secondStepPrep_dict[i].trainData[relief_chosen_set]
                 secondStepPrep_dict[i].valData = secondStepPrep_dict[i].valData[relief_chosen_set]
                 secondStepPrep_dict[i].testData = secondStepPrep_dict[i].testData[relief_chosen_set]

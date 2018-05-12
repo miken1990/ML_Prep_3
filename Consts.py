@@ -1,5 +1,11 @@
 from enum import Enum
 
+inf = 10000
+maxLeafNodes = 20
+INDEX_COL = 'index_col'
+VOTE_STR = 'Vote'
+VOTE_INT = 'Vote_int'
+
 setSelectedFeatures = {
     'Number_of_valued_Kneset_members',
     'Yearly_IncomeK',
@@ -8,7 +14,8 @@ setSelectedFeatures = {
     'Most_Important_Issue',
     'Will_vote_only_large_party',
     'Garden_sqr_meter_per_person_in_residancy_area',
-    'Weighted_education_rank'
+    'Weighted_education_rank',
+    INDEX_COL
 }
 
 _listSymbolicColumns = [
@@ -116,9 +123,29 @@ listAdditionalDataPreparation = ["validation", "test", ""]
 
 listRandomStates = [376674226, 493026216, 404629562, 881225405]
 
+MAP_VOTE_TO_NUMERIC = {
+    'Greens': 10,
+    'Pinks': 9,
+    'Purples': 8,
+    'Blues': 7,
+    'Whites': 6,
+    'Browns': 5,
+    'Yellows': 4,
+    'Reds': 3,
+    'Turquoises': 2,
+    'Greys': 1,
+    'Oranges': 11
+}
+
+class DataTypes(Enum):
+    TEST = 'test'
+    VAL = 'val'
+    TRAIN = 'train'
+
 class ClassifierTypes(Enum):
     TREE = "tree"
     SVM = "svm"
+    RANDOM_FOREST = "random_forest"
 
 class FileSubNames(Enum):
     X_TRAIN = 'X_train'
@@ -130,12 +157,11 @@ class FileSubNames(Enum):
 
 class DirNames(Enum):
     DATA_SETS = 'datasets'
-    DATA_SETS_1 = 'datasets/1'
-    DATA_SETS_2 = 'datasets/2'
+    DATA_SETS_I = 'datasets/{}'
     RAW_AND_SPLITED = "datasets/{}/raw_spited"
     RAW_AND_FILTERED = "datasets/{}/raw_and_filtered"
     FILTERED_AND_NUMERIC_NAN = "datasets/{}/filtered_and_numeric_nan"
-    FILTERED_AND_NUMERIC_NONAN = "datasets/{}/filtered_and_numeric_nan"
+    FILTERED_AND_NUMERIC_NONAN = "datasets/{}/filtered_and_numeric_nonan"
     FILTERED_AND_SCALED = "datasets/{}/filtered_and_scaled"
     SUMMARY = "datasets/{}/summary"
 
@@ -150,6 +176,4 @@ class FileNames(Enum):
     FILTERED_AND_NUMERIC_NONAN = DirNames.FILTERED_AND_NUMERIC_NONAN.value + per_file
     FILTERED_AND_SCALED = DirNames.FILTERED_AND_SCALED.value + per_file
     SUMMARY = DirNames.SUMMARY.value + per_file
-
-inf = 10000
 

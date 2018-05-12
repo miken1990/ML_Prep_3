@@ -33,6 +33,20 @@ class ElectionsDataPreperation:
         self.testData = None
         self.testLabels = None
 
+    def save_labels(self, base: str, set: int):
+        header = [Consts.VOTE_STR, Consts.INDEX_COL]
+        df = self.trainLabels.loc[:, header]
+        df.to_csv(base.format(set, Consts.FileSubNames.Y_TRAIN.value), header=header, index=False)
+        df = self.valLabels.loc[:, header]
+        df.to_csv(base.format(set, Consts.FileSubNames.Y_VAL.value), header=header, index=False)
+        df = self.testLabels.loc[:, header]
+        df.to_csv(base.format(set, Consts.FileSubNames.Y_TEST.value), header=header, index=False)
+
+    def save_data(self, base: str, set: int):
+        self.trainData.to_csv(base.format(set, Consts.FileSubNames.X_TRAIN.value), index=False)
+        self.valData.to_csv(base.format(set, Consts.FileSubNames.X_VAL.value), index=False)
+        self.testData.to_csv(base.format(set, Consts.FileSubNames.X_TEST.value), index=False)
+
     def loadAndImpute(self, lDataTypes=None):
         """ lDataTypes is a list with following values ['test', 'validation'], the list determines if the data load,
         renaming and imputation will happen on the test and validation sets
@@ -43,14 +57,13 @@ class ElectionsDataPreperation:
         # first we impute train
         self._dataImpute(self.trainData, self.trainData, self.sInputFileTrain)
 
-        if ("test" in lDataTypes):
+        if Consts.DataTypes.TEST in lDataTypes:
             self._dataImpute(self.trainData, self.testData, self.sInputFileTest)
 
-        if ("validation" in lDataTypes):
+        if Consts.DataTypes.VAL in lDataTypes:
             self._dataImpute(self.trainData, self.valData, self.sInputFileVal)
 
-
-    def loadData(self, lDataTypes = []):
+    def loadData(self, lDataTypes = list(Consts.DataTypes)):
         """lDataTypes is a list with following values ['test', 'validation'], the list determines if the data load,
         renaming and imputation will happen on the test and validation sets
         """
@@ -59,27 +72,34 @@ class ElectionsDataPreperation:
         trainFileNameY = self.sInputFileTrainLabel
         self.trainLabels = read_csv(trainFileNameY, header=0)
 
-        if ('test' in lDataTypes):
+        if (Consts.DataTypes.TEST in lDataTypes):
             testFileNameX = self.sInputFileTest
             self.testData = read_csv(testFileNameX, header=0, keep_default_na=True)
             testFileNameY = self.sInputFileTestLabel
             self.testLabels = read_csv(testFileNameY, header=0)
 
-        if ('validation' in lDataTypes):
+        if (Consts.DataTypes.VAL in lDataTypes):
             valFileNameX = self.sInputFileVal
             self.valData = read_csv(valFileNameX, header=0, keep_default_na=True)
             valFileNameY = self.sInputFileValLabel
             self.valLabels = read_csv(valFileNameY, header=0)
 
+    def fix_nan_and_outliers(self):
+
+        self._dataImpute(self.trainData, self.trainData, self.sInputFileTrain)
+
+        self._dataImpute(self.trainData, self.valData, self.sInputFileVal)
+
+        self._dataImpute(self.trainData, self.testData, self.sInputFileTest)
 
     def filterFeatures(self, lDataTypes = []):
         """filters unnecessary features from the dataset
         """
         listOrderedSelectedFeatures = [feature for feature in self.trainData.columns if feature in Consts.setSelectedFeatures]
         self.trainData = self.trainData[listOrderedSelectedFeatures]
-        if 'validation' in lDataTypes:
+        if Consts.DataTypes.VAL in lDataTypes:
             self.valData = self.valData[listOrderedSelectedFeatures]
-        if 'test' in lDataTypes:
+        if Consts.DataTypes.TEST in lDataTypes:
             self.testData = self.testData[listOrderedSelectedFeatures]
 
 
@@ -100,10 +120,10 @@ class ElectionsDataPreperation:
         # trainPath = self.sInputFileTrain + 'Numeric.csv'
         # self.trainData.to_csv(trainPath)
 
-        if ('test' in lDataTypes):
+        if Consts.DataTypes.TEST in lDataTypes:
             self._changeStringToValuesAux(self.testData, self.sInputFileTest)
 
-        if ('validation' in lDataTypes):
+        if Consts.DataTypes.VAL in lDataTypes:
             self._changeStringToValuesAux(self.valData, self.sInputFileVal)
 
     def _changeStringToValuesAux(self, data, sInputFilePath):
@@ -117,46 +137,32 @@ class ElectionsDataPreperation:
 
         list_save_to = sInputFilePath.split("/")
         data.to_csv(
-            Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(list_save_to[1], list_save_to[-1].split(".")[0])
+            Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(list_save_to[1], list_save_to[-1].split(".")[0]),
+            index=False
         )
+    def _refactor_location(self, location: str) -> str:
+        list_save_to = location.split("/")
+        return Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(list_save_to[1], list_save_to[-1].split(".")[0])
+
+    def _changeVoteToNumber_aux(self, df: pd.DataFrame, location: str):
+        df[Consts.VOTE_STR] = df[Consts.VOTE_STR].map(Consts.MAP_VOTE_TO_NUMERIC)
+        header = [Consts.VOTE_STR, Consts.INDEX_COL]
+        df[header].to_csv(self._refactor_location(location),
+                          header=header,
+                          index=False
+                          )
 
     def _changeVoteToNumber(self, lDataTypes=None):
         """lDataTypes is a list with following values['test', 'validation'], the list determines if the
         _changeVoteToNumber will happen on the test and validation sets.
         """
-        self.trainLabels['Vote'] = self.trainLabels['Vote'].map({'Greens': 10, 'Pinks': 9, 'Purples': 8,
-                                                                                 'Blues': 7, 'Whites': 6, 'Browns': 5,
-                                                                                 'Yellows': 4, 'Reds': 3,
-                                                                                 'Turquoises': 2,
-                                                                                 'Greys': 1, 'Oranges': 11})
-        self.trainLabels = self.trainLabels[["Vote"]]
-        list_save_to = self.sInputFileTrainLabel.split("/")
-        self.trainLabels.to_csv(
-            Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(list_save_to[1], list_save_to[-1].split(".")[0])
-        )
+        self._changeVoteToNumber_aux(self.trainLabels, self.sInputFileTrainLabel)
 
-        if ('validation' in lDataTypes):
-            self.valLabels['Vote'] = self.valLabels['Vote'].map({'Greens': 10, 'Pinks': 9, 'Purples': 8,
-                                                                                 'Blues': 7, 'Whites': 6, 'Browns': 5,
-                                                                                 'Yellows': 4, 'Reds': 3,
-                                                                                 'Turquoises': 2,
-                                                                                 'Greys': 1, 'Oranges': 11})
-            self.valLabels = self.valLabels[["Vote"]]
-            list_save_to = self.sInputFileValLabel.split("/")
-            self.valLabels.to_csv(
-                Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(list_save_to[1], list_save_to[-1].split(".")[0])
-            )
-        if ('test' in lDataTypes):
-            self.testLabels['Vote'] = self.testLabels['Vote'].map({'Greens': 10, 'Pinks': 9, 'Purples': 8,
-                                                                                 'Blues': 7, 'Whites': 6, 'Browns': 5,
-                                                                                 'Yellows': 4, 'Reds': 3,
-                                                                                 'Turquoises': 2,
-                                                                                 'Greys': 1, 'Oranges': 11})
-            self.testLabels = self.testLabels[["Vote"]]
-            list_save_to = self.sInputFileTestLabel.split("/")
-            self.testLabels.to_csv(
-                Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(list_save_to[1], list_save_to[-1].split(".")[0])
-            )
+        if Consts.DataTypes.VAL in lDataTypes:
+            self._changeVoteToNumber_aux(self.valLabels, self.sInputFileValLabel)
+
+        if Consts.DataTypes.TEST in lDataTypes:
+            self._changeVoteToNumber_aux(self.testLabels, self.sInputFileTestLabel)
 
     def _dataImpute(self, trainData, imputeData, sFileName):
         data_with_NaN = imputeData.isnull().any(axis=1)
@@ -209,7 +215,8 @@ class ElectionsDataPreperation:
 
         list_save_to = sFileName.split("/")
         imputeData.to_csv(
-            Consts.FileNames.FILTERED_AND_NUMERIC_NONAN.value.format(list_save_to[1], list_save_to[-1].split(".")[0])
+            Consts.FileNames.FILTERED_AND_NUMERIC_NONAN.value.format(list_save_to[1], list_save_to[-1].split(".")[0]),
+            index=False
         )
 
     def _fillBoolValues(self, data):
@@ -261,7 +268,7 @@ class ElectionsDataPreperation:
     def removeAbove95Corr(self):
         corr_matrix = self.trainData.corr().abs()
         upper = corr_matrix.where(np.triu(np.ones(corr_matrix.shape), k=1).astype(np.bool))
-        upper.to_csv(self.sInputFileTest+ 'CorrMatrix.csv')
+        upper.to_csv(self.sInputFileTest+ 'CorrMatrix.csv', index=False)
         to_drop = [column for column in upper.columns if any(upper[column] > 0.95)]
         self.trainData = self.trainData.drop(to_drop, axis=1)
 
@@ -287,23 +294,25 @@ class ElectionsDataPreperation:
 class DataSplit:
     """ receives File path, loads data and splits the data in a stratified way
     """
+    def add_index_col(self, df: pd.DataFrame) -> None:
+        df[Consts.INDEX_COL] = df.index
+
     def __init__(self, sFilePath):
         self.dataset = read_csv(sFilePath, header=0, keep_default_na=True)
         self.data = self.dataset.loc[:, self.dataset.columns != 'Vote']
+        self.add_index_col(self.data)
         self.labels = self.dataset.loc[:, self.dataset.columns =='Vote']
+        self.add_index_col(self.labels)
 
     def saveDataSetsToCsv(self):
         """ save splitted data to csv
         """
         tDataSets = self.stratifySplit()
 
-        for di in ['datasets']:
-            if not os.path.isdir(di):
-                os.mkdir(di)
-
         for i, dataSet in enumerate(tDataSets):
             for j, f in enumerate(Consts.FileSubNames):
-                dataSet[j].to_csv(Consts.FileNames.RAW_AND_SPLITED.value.format(str(i + 1), f.value, str(i + 1)))
+                dataSet[j].to_csv(Consts.FileNames.RAW_AND_SPLITED.value.format(str(i + 1), f.value, str(i + 1)),
+                                  index=False)
 
     def stratifySplit(self):
         """splits the data into three different data sets
@@ -321,19 +330,18 @@ class DataSplit:
                                                                                       shuffle=True,
                                                                                       random_state=
                                                                                         Consts.listRandomStates[1],
-                                                                                      stratify=y_train_second)
+                                                                                      stratify=y_train_second[Consts.VOTE_STR])
 
         X_train_third, X_test_third, y_train_third, y_test_third = train_test_split(self.data, self.labels,
                                                                                     train_size=0.85, shuffle=True,
                                                                                     random_state=
-                                                                                        Consts.listRandomStates[2],
-                                                                                    stratify=self.labels)
+                                                                                        Consts.listRandomStates[2])
 
         X_train_third, X_val_third, y_train_third, y_val_third = train_test_split(X_train_third, y_train_third,
                                                                                   train_size=0.8235, shuffle=True,
                                                                                   random_state=
                                                                                         Consts.listRandomStates[3],
-                                                                                  stratify=y_train_third)
+                                                                                  stratify=y_train_third[Consts.VOTE_STR])
 
         return [(X_train_second, X_val_second, X_test_second, y_train_second, y_val_second, y_test_second),
                 (X_train_third, X_val_third, X_test_third, y_train_third, y_val_third, y_test_third)]

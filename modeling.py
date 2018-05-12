@@ -1,6 +1,7 @@
 from enum import Enum
 import Consts
 import pandas as pd
+import numpy as np
 from pandas import read_csv
 from sklearn import metrics
 from sklearn.model_selection import cross_val_predict
@@ -8,28 +9,35 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
 
 
+
 class Modeling:
+    dict_dfs = {d: None for d in list(Consts.FileSubNames)}
+    list_clf_and_type = []
+    list_name_score = []
+    best_name_and_score = None
 
     def __init__(self):
-        self.trainData = None
-        self.valData = None
-        self.testData = None
-        self.trainLabel = None
-        self.valLabel = None
-        self.testLabel = None
+        self.dict_dfs = {d: None for d in list(Consts.FileSubNames)}
 
     class ClassifierType(Enum):
-        DECISION_TREE = 1
+        DECISION_TREE = 'decision_tree'
+        SVM = 'svm'
+        RANDOM_FOREST = 'random forest'
 
     class ScoreType(Enum):
-        ACCURACY = 1
-        ERROR = 2
-        PRECISION = 3
-        RECALL = 4
-        FP_RATE = 5
-        F1_SCORE = 6 # Harmonic 2/(1/precision + 1/recall)
+        # Classification
+        F1= 'f1'
+        F1_MACRO= 'f1_macro'
+        F1_MICRO= 'f1_micro'
+        F1_WEIGHTED = 'f1_weighted'
+        ACCURACY = 'accuracy'
+        # Clustering
 
-    def load_data(self, dirPath: str) -> None:
+        # Regression
+        EXPLAINED_VARIANCE = 'explained_variance'
+        R2 = 'r2'
+
+    def load_data(self, base: Consts.FileNames, set: int) -> None:
         """
         this method will load ready to use data for the training, validating, and testing sets.
         this implements stages 1, 3 and part of 6 in the assignment.
@@ -37,80 +45,106 @@ class Modeling:
         :return:
         """
         # load train features and labels
-        trainFileNameX = dirPath.format(Consts.FileSubNames.X_TRAIN.value)
-        self._load_data(self.trainData, trainFileNameX)
-        trainFileNameY = dirPath.format(Consts.FileSubNames.Y_TRAIN.value)
-        self._load_data(self.trainLabel, trainFileNameY)
-        # load validation features and labels
-        valFileNameX = dirPath.format(Consts.FileSubNames.X__VAL.value)
-        self._load_data(self.valData, valFileNameX)
-        valFileNameY = dirPath.format(Consts.FileSubNames.Y_VAL.value)
-        self._load_data(self.valLabel, valFileNameY)
-        # load test features and labels
-        testFileNameX = dirPath.format(Consts.FileSubNames.X_TEST.value)
-        self._load_data(self.testData, testFileNameX)
-        testFileNameY = dirPath.format(Consts.FileSubNames.Y_TEST.value)
-        self._load_data(self.testLabel, testFileNameY)
+        for d in list(Consts.FileSubNames):
+            file_location = base.value.format(set, d.value)
+            if d in {Consts.FileSubNames.Y_TEST, Consts.FileSubNames.Y_VAL, Consts.FileSubNames.Y_TRAIN }:
+                self.dict_dfs[d] = self._load_data(file_location)[Consts.VOTE_STR].as_matrix().ravel()
+            else:
+                self.dict_dfs[d] = self._load_data(file_location).as_matrix()
 
-    def _load_data(self, loadedData, filePath):
-        loadedData = read_csv(filePath, header=0, keep_default_na=True)
+    def _load_data(self, filePath):
+        return read_csv(filePath, header=0, keep_default_na=True)
 
-    def createClassifiersNameTuple(self, classifier_type_list: [ClassifierType]):
-        """
-        this method will train a few classifiers and store them in classifiers list.
-        default amount is 2, as required in the assignment.
-        :param classifier_type_list: list of classifier names
-        saves a list of tuples: (classifier, name) in self.clfName
-        """
-        self.clfName = []
-        if Consts.ClassifierTypes.TREE.value in classifier_type_list:
-            decisionTreeClf = DecisionTreeClassifier(criterion='entropy', random_state=Consts.listRandomStates[0],
-                                                     max_leaf_nodes=Consts.maxLeafNodes)
-            decisionTreeClf.fit(self.trainData, self.trainLabel)
-            self.clfName.append((decisionTreeClf, Consts.ClassifierTypes.TREE.value))
+#     def
+#
+#
+#     def create_classifiers_name_tuple(self, classifier_type_list: [ClassifierType]):
+#         """
+#         this method will train a few classifiers and store them in classifiers list.
+#         :param classifier_type_list: list of classifiers by Enum
+#         saves a list of tuples: (classifier obj, classifier Enum) in self.clfName
+#         """
+#         self.list_clf_and_type = []
+#         if Consts.ClassifierTypes.TREE in classifier_type_list:
+#             decisionTreeClf = DecisionTreeClassifier(criterion='entropy', random_state=Consts.listRandomStates[0],
+#                                                      max_leaf_nodes=Consts.maxLeafNodes)
+#             decisionTreeClf.fit(self.train_data, self.train_label)
+#             self.list_clf_and_type.append((decisionTreeClf, Consts.ClassifierTypes.TREE))
+#
+#         if Consts.ClassifierTypes.SVM in classifier_type_list:
+#             svmClf = SVC(random_state=Consts.listRandomStates[0])
+#             svmClf.fit(self.train_data, self.train_label)
+#             self.list_clf_and_type.append((svmClf, Consts.ClassifierTypes.SVM))
+#
+#         #TODO: add more classifiers
+#
+#     def cross_val_eval(self, scoreMetric: str=None):
+#         """
+#         :param scoreMetric:
+#         :return:
+#         """
+#         for clf, name in self.list_clf_and_type:
+#             #TODO: use a callable func to score the classifiers differently?
+#             score = metrics.accuracy_score(self.val_label, clf.predict(self.val_data))
+#             self.list_name_score.append((name, score))
+#
+#     def train_best_classifier_by_train_and_validation(self):
+#         """
+#         create a classifier from both the train and validate sets of data.
+#         :param classifier_type: the wanted type of classifier.
+#         :return:
+#         """
+#         self.get_best_models()
+#         X_data, Y_data = self.concat_train_and_val()
+#         clf = None
+#         if self.best_name_and_score[0] == Consts.ClassifierTypes.TREE:
+#             clf = DecisionTreeClassifier(criterion='entropy', random_state=Consts.listRandomStates[0],
+#                                          max_leaf_nodes=Consts.maxLeafNodes)
+#         elif self.best_name_and_score[0] == Consts.ClassifierTypes.SVM:
+#             clf = SVC(random_state=Consts.listRandomStates[0])
+#         #TODO: if more classifiers are added, they should be trained here.
+#
+#         clf.fit(X=X_data, y=Y_data.ravel())
+#
+#         return clf
+#
+#     def get_best_models(self):
+#         """
+#         get the n best classifiers
+#         :param classifiers_score_list: a list of tuples (classifier, score)
+#         :param n: the wanted amount of classifiers
+#         :return: a list of the n best models
+#         """
+#         self.best_name_and_score = max(self.list_name_score, key=lambda x: x[1])
+#         print(f"Choose {self.best_name_and_score[0].value} as the best Classifier")
+#
+#
+#     def classify_test_and_compute_results(self):
+#         clf = self.train_best_classifier_by_train_and_validation()
+#
+#         Y_pred = clf.predict(X=self.test_data)
+#
+#         print(Y_pred)
+#
+#
+#     def concat_train_and_val(self) -> (pd.DataFrame, pd.DataFrame):
+#         return np.concatenate((self.train_data, self.val_data), axis=0), \
+#                np.ravel([self.train_label, self.val_label])
+#
+# if __name__ == "__main__":
+#
+#     m = Modeling()
+#
+#     # load the data from set 1.
+#     m.load_data(Consts.FileNames.FILTERED_AND_SCALED.value.format(1, "{}"))
+#
+#     # Save a list of tuples inside m. train the classifiers by the train data.
+#     m.create_classifiers_name_tuple(list(Consts.ClassifierTypes))
+#
+#     # Set a score for each type of classifier. TODO: might change to receive a scoring function
+#     m.cross_val_eval()
+#
+#     # Train the classifier with the highest score and get the results
+#     # Here the training is by the train and validation set.
+#     m.classify_test_and_compute_results()
 
-        if Consts.ClassifierTypes.SVM.value in classifier_type_list:
-            svmClf = SVC(random_state=Consts.listRandomStates[0])
-            svmClf.fit(self.trainData, self.trainLabel)
-            self.clfName.append((svmClf, Consts.ClassifierTypes.SVM.value))
-
-    def crossValEval(self, scoreMetric: str):
-        """
-        :param scoreMetric:
-        :return:
-        """
-        self.clfNameScore = []
-        for clf, name in self.clfName:
-            score = metrics.accuracy_score(self.valLabel, clf.predict(self.valData))
-            self.clfNameScore.append(name, score)
-        self.bestClfAndName = max(self.clfNameScore, key=lambda x: x[1])
-
-
-    def trainBestclassifierByTrainAndValidation(self):
-        """
-        create a classifier from both the train and validate sets of data.
-        :param classifier_type: the wanted type of classifier.
-        :return:
-        """
-
-    def score_classifiers(self, score_type: ScoreType):
-        """
-        run the validation set on each classifier and give it a score.
-        :return: a list of tuples (classifier, score)
-        """
-
-    def get_best_models(self, classifiers_score_list: list, n: int = 1):
-        """
-        get the n best classifiers
-        :param classifiers_score_list: a list of tuples (classifier, score)
-        :param n: the wanted amount of classifiers
-        :return: a list of the n best models
-        """
-
-    def classify_test_and_compute_results(self, classifiers_score):
-        pass
-
-    def concat_train_and_val(self) -> (pd.DataFrame, pd.DataFrame):
-        return pd.concat([self.trainData, self.valData]), pd.concat([self.trainLabel, self.valLabel])
-
-print(Consts.FileSubNames.X_TRAIN.value)
