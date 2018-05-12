@@ -54,21 +54,21 @@ class ElectionsDataPreperation:
         """lDataTypes is a list with following values ['test', 'validation'], the list determines if the data load,
         renaming and imputation will happen on the test and validation sets
         """
-        trainFileNameX = self.sInputFileTrain + '.csv'
+        trainFileNameX = self.sInputFileTrain
         self.trainData = read_csv(trainFileNameX, header=0, keep_default_na=True)
-        trainFileNameY = self.sInputFileTrainLabel + '.csv'
+        trainFileNameY = self.sInputFileTrainLabel
         self.trainLabels = read_csv(trainFileNameY, header=0)
 
         if ('test' in lDataTypes):
-            testFileNameX = self.sInputFileTest + '.csv'
+            testFileNameX = self.sInputFileTest
             self.testData = read_csv(testFileNameX, header=0, keep_default_na=True)
-            testFileNameY = self.sInputFileTestLabel + '.csv'
+            testFileNameY = self.sInputFileTestLabel
             self.testLabels = read_csv(testFileNameY, header=0)
 
         if ('validation' in lDataTypes):
-            valFileNameX = self.sInputFileVal + '.csv'
+            valFileNameX = self.sInputFileVal
             self.valData = read_csv(valFileNameX, header=0, keep_default_na=True)
-            valFileNameY = self.sInputFileValLabel + '.csv'
+            valFileNameY = self.sInputFileValLabel
             self.valLabels = read_csv(valFileNameY, header=0)
 
 
@@ -114,8 +114,11 @@ class ElectionsDataPreperation:
         data = data.drop(Consts.listNonNumeric, axis=1)
         # data = data.drop(data.columns[0], axis=1)
         ElectionsDataPreperation.fixNegativeVals(data)
-        Path = sInputFilePath + 'Numeric.csv'
-        data.to_csv(Path)
+
+        list_save_to = sInputFilePath.split("/")
+        data.to_csv(
+            Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(list_save_to[1], list_save_to[-1].split(".")[0])
+        )
 
     def _changeVoteToNumber(self, lDataTypes=None):
         """lDataTypes is a list with following values['test', 'validation'], the list determines if the
@@ -127,7 +130,10 @@ class ElectionsDataPreperation:
                                                                                  'Turquoises': 2,
                                                                                  'Greys': 1, 'Oranges': 11})
         self.trainLabels = self.trainLabels[["Vote"]]
-        self.trainLabels.to_csv(self.sInputFileTrainLabel + 'Numeric.csv')
+        list_save_to = self.sInputFileTrainLabel.split("/")
+        self.trainLabels.to_csv(
+            Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(list_save_to[1], list_save_to[-1].split(".")[0])
+        )
 
         if ('validation' in lDataTypes):
             self.valLabels['Vote'] = self.valLabels['Vote'].map({'Greens': 10, 'Pinks': 9, 'Purples': 8,
@@ -136,7 +142,10 @@ class ElectionsDataPreperation:
                                                                                  'Turquoises': 2,
                                                                                  'Greys': 1, 'Oranges': 11})
             self.valLabels = self.valLabels[["Vote"]]
-            self.valLabels.to_csv(self.sInputFileValLabel + 'Numeric.csv')
+            list_save_to = self.sInputFileValLabel.split("/")
+            self.valLabels.to_csv(
+                Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(list_save_to[1], list_save_to[-1].split(".")[0])
+            )
         if ('test' in lDataTypes):
             self.testLabels['Vote'] = self.testLabels['Vote'].map({'Greens': 10, 'Pinks': 9, 'Purples': 8,
                                                                                  'Blues': 7, 'Whites': 6, 'Browns': 5,
@@ -144,7 +153,10 @@ class ElectionsDataPreperation:
                                                                                  'Turquoises': 2,
                                                                                  'Greys': 1, 'Oranges': 11})
             self.testLabels = self.testLabels[["Vote"]]
-            self.testLabels.to_csv(self.sInputFileTestLabel + 'Numeric.csv')
+            list_save_to = self.sInputFileTestLabel.split("/")
+            self.testLabels.to_csv(
+                Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value.format(list_save_to[1], list_save_to[-1].split(".")[0])
+            )
 
     def _dataImpute(self, trainData, imputeData, sFileName):
         data_with_NaN = imputeData.isnull().any(axis=1)
@@ -194,7 +206,11 @@ class ElectionsDataPreperation:
         # print(sFileName)
         imputeData = pd.DataFrame(imputeDataArray, columns=imputeData.columns.values)
         imputeData = imputeData.loc[:, ~imputeData.columns.str.contains('^Unnamed')]
-        imputeData.to_csv(sFileName + 'No_Nan.csv')
+
+        list_save_to = sFileName.split("/")
+        imputeData.to_csv(
+            Consts.FileNames.FILTERED_AND_NUMERIC_NONAN.value.format(list_save_to[1], list_save_to[-1].split(".")[0])
+        )
 
     def _fillBoolValues(self, data):
         """ replaces Bool columns with 1, 0 and NaN
@@ -281,23 +297,13 @@ class DataSplit:
         """
         tDataSets = self.stratifySplit()
 
-        if not os.path.isdir('datasets'):
-            os.mkdir('datasets')
-
-        if not os.path.isdir('datasets/1'):
-            os.mkdir('datasets/1')
-
-        if not os.path.isdir('datasets/2'):
-            os.mkdir('datasets/2')
-
+        for di in ['datasets']:
+            if not os.path.isdir(di):
+                os.mkdir(di)
 
         for i, dataSet in enumerate(tDataSets):
-            dataSet[0].to_csv('datasets/' + str(i + 1) + '/X_train' + '{}'.format(i+1) + '.csv')
-            dataSet[1].to_csv('datasets/' + str(i + 1) + '/X_val' + '{}'.format(i + 1) + '.csv')
-            dataSet[2].to_csv('datasets/' + str(i + 1) + '/X_test' + '{}'.format(i+1) + '.csv')
-            dataSet[3].to_csv('datasets/' + str(i + 1) + '/Y_train' + '{}'.format(i+1) + '.csv')
-            dataSet[4].to_csv('datasets/' + str(i + 1) + '/Y_val' + '{}'.format(i + 1) + '.csv')
-            dataSet[5].to_csv('datasets/' + str(i + 1) + '/Y_test' + '{}'.format(i+1) + '.csv')
+            for j, f in enumerate(Consts.FileSubNames):
+                dataSet[j].to_csv(Consts.FileNames.RAW_AND_SPLITED.value.format(str(i + 1), f.value, str(i + 1)))
 
     def stratifySplit(self):
         """splits the data into three different data sets
@@ -305,40 +311,34 @@ class DataSplit:
         X_train_second, X_test_second, y_train_second, y_test_second = train_test_split(self.data, self.labels,
                                                                                         train_size=0.85,
                                                                                         shuffle=True,
-                                                                                        random_state=376674226)
+                                                                                        random_state=
+                                                                                        Consts.listRandomStates[0])
 
 
         X_train_second, X_val_second, y_train_second, y_val_second = train_test_split(X_train_second,
                                                                                       y_train_second,
                                                                                       train_size=0.8235,
                                                                                       shuffle=True,
-                                                                                      random_state=493026216,
+                                                                                      random_state=
+                                                                                        Consts.listRandomStates[1],
                                                                                       stratify=y_train_second)
 
         X_train_third, X_test_third, y_train_third, y_test_third = train_test_split(self.data, self.labels,
                                                                                     train_size=0.85, shuffle=True,
-                                                                                    random_state=404629562,
+                                                                                    random_state=
+                                                                                        Consts.listRandomStates[2],
                                                                                     stratify=self.labels)
 
         X_train_third, X_val_third, y_train_third, y_val_third = train_test_split(X_train_third, y_train_third,
                                                                                   train_size=0.8235, shuffle=True,
-                                                                                  random_state=881225405,
+                                                                                  random_state=
+                                                                                        Consts.listRandomStates[3],
                                                                                   stratify=y_train_third)
 
         return [(X_train_second, X_val_second, X_test_second, y_train_second, y_val_second, y_test_second),
                 (X_train_third, X_val_third, X_test_third, y_train_third, y_val_third, y_test_third)]
 
 # end method DataSplit
-
-
-if __name__ == '__main__':
-
-    firstSetPrep = ElectionsDataPreperation('datasets/1/X_train1No_Nan', 'datasets/1/X_val1',
-                                            'datasets/1/X_test1Numeric - Copy', 'datasets/1/Y_train1',
-                                            'datasets/1/Y_val1', 'datasets/1/Y_test1')
-
-    firstSetPrep.loadData(Consts.listAdditionalDataPreparation)
-    firstSetPrep._dataImpute(firstSetPrep.trainData, firstSetPrep.testData, 'datasets/1/X_test1-copy')
 
 
 

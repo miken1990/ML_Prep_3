@@ -114,24 +114,42 @@ listFixNegateVals = [feature for feature in _listFixNegateVals if feature in set
 
 listAdditionalDataPreparation = ["validation", "test", ""]
 
+listRandomStates = [376674226, 493026216, 404629562, 881225405]
+
+class ClassifierTypes(Enum):
+    TREE = "tree"
+    SVM = "svm"
+
 class FileSubNames(Enum):
-    X_TRAIN = '/X_train'
-    X__VAL = '/X_val'
-    X_TEST = '/X_test'
-    Y_TRAIN = '/Y_train'
-    Y_VAL = '/Y_val'
-    Y_TEST = '/Y_test'
+    X_TRAIN = 'X_train'
+    X_VAL = 'X_val'
+    X_TEST = 'X_test'
+    Y_TRAIN = 'Y_train'
+    Y_VAL = 'Y_val'
+    Y_TEST = 'Y_test'
+
+class DirNames(Enum):
+    DATA_SETS = 'datasets'
+    DATA_SETS_1 = 'datasets/1'
+    DATA_SETS_2 = 'datasets/2'
+    RAW_AND_SPLITED = "datasets/{}/raw_spited"
+    RAW_AND_FILTERED = "datasets/{}/raw_and_filtered"
+    FILTERED_AND_NUMERIC_NAN = "datasets/{}/filtered_and_numeric_nan"
+    FILTERED_AND_NUMERIC_NONAN = "datasets/{}/filtered_and_numeric_nan"
+    FILTERED_AND_SCALED = "datasets/{}/filtered_and_scaled"
+    SUMMARY = "datasets/{}/summary"
+
+per_file = "/{}.csv"
 
 class FileNames(Enum):
     FROM_INTERNET = ""
     RAW_FILE_PATH = 'ElectionsData.csv'
-    RAW_AND_SPLITED = "datasets/{}/raw_splited/{}{}.csv"
-    RAW_AND_FILTERED  = "datasets/{}/raw_and_filtered/{}{}.csv"
-    FILTERED_AND_NUMERIC_NAN = "datasets/{}/filtered_and_numeric_nan/{}{}.csv"
-    FILTERED_AND_NUMERIC_NONAN = "datasets/{}/filtered_and_numeric_nan/{}{}.csv"
-    FILTERED_AND_SCALED = "datasets/{}/filtered_and_scaled/{}{}.csv"
+    RAW_AND_SPLITED = DirNames.RAW_AND_SPLITED.value + per_file
+    RAW_AND_FILTERED  = DirNames.RAW_AND_FILTERED.value + per_file
+    FILTERED_AND_NUMERIC_NAN = DirNames.FILTERED_AND_NUMERIC_NAN.value + per_file
+    FILTERED_AND_NUMERIC_NONAN = DirNames.FILTERED_AND_NUMERIC_NONAN.value + per_file
+    FILTERED_AND_SCALED = DirNames.FILTERED_AND_SCALED.value + per_file
+    SUMMARY = DirNames.SUMMARY.value + per_file
 
 inf = 10000
-RAW_FILE_PATH = 'ElectionsData.csv'
-RAW_SPLIT_FILE_DIRECTORY = "datasets"
-RAW_SPLIT_FILE_PATH = "datasets/{}/{}{}"
+
