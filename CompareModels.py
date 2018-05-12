@@ -7,6 +7,8 @@ from sklearn.linear_model import Perceptron
 from sklearn.linear_model import PassiveAggressiveClassifier
 from mlxtend.classifier import Adaline
 
+from LMS import Lms
+
 class CompareModels:
     def __init__(self):
         self.heldout = [0.85, 0.80, 0.70, 0.60, 0.50, 0.40, 0.01]
@@ -17,21 +19,22 @@ class CompareModels:
         self.iris_X, self.iris_y = self.iris.data, self.iris.target
 
         self.classifiers = [
-            ("Perceptron", Perceptron()),
+            ("Perceptron", Perceptron(max_iter=30)),
             ("Adaline", Adaline(epochs=30,
               eta=0.01,
-              minibatches=None,
-              random_seed=1))
+              minibatches=1,
+              random_seed=1)),
+            ("Lms", Lms(eta=0.01, n_iter=30, random_state=1))
         ]
         self.xx = 1. - np.array(self.heldout)
 
     def compareDigitsBinary1VsAll(self):
-        self._compareDatasetBinary1VsAll(self.digits_X, self.digits_y)
+        self._compareDatasetBinary1VsAll(self.digits_X, self.digits_y, "Digits")
 
     def compareIrisBinary1VsAll(self):
-        self._compareDatasetBinary1VsAll(self.iris_X, self.iris_y)
+        self._compareDatasetBinary1VsAll(self.iris_X, self.iris_y, "Iris")
 
-    def _compareDatasetBinary1VsAll(self, X, y):
+    def _compareDatasetBinary1VsAll(self, X, y, sTitle):
         lb = preprocessing.LabelBinarizer(neg_label=0, pos_label=1, sparse_output=False)
         lb.fit(y)
         oneVsAll_Y = lb.transform(y)
@@ -54,7 +57,7 @@ class CompareModels:
                 yy.append(np.mean(yy_))
             plt.plot(self.xx, yy, label=name)
 
-        plt.title("Digits")
+        plt.title(sTitle)
         plt.legend(loc="upper right")
         plt.xlabel("Proportion train")
         plt.ylabel("Test Error Rate")
