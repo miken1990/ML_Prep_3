@@ -1,10 +1,13 @@
 from enum import Enum
+
+from sklearn.ensemble import RandomForestClassifier
+
 import Consts
 import pandas as pd
 import numpy as np
 from pandas import read_csv
 from sklearn import metrics
-from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import cross_val_predict, RandomizedSearchCV, cross_val_score
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.svm import SVC
 
@@ -12,9 +15,6 @@ from sklearn.svm import SVC
 
 class Modeling:
     dict_dfs = {d: None for d in list(Consts.FileSubNames)}
-    list_clf_and_type = []
-    list_name_score = []
-    best_name_and_score = None
 
     def __init__(self):
         self.dict_dfs = {d: None for d in list(Consts.FileSubNames)}
@@ -55,7 +55,46 @@ class Modeling:
     def _load_data(self, filePath):
         return read_csv(filePath, header=0, keep_default_na=True)
 
-#     def
+    def parameter_search_classifiers(self, classifier_types: Consts.ClassifierType=list(Consts.ClassifierType),
+                                     scoring: Consts.ScoreType=Consts.ScoreType.ACCURACY) -> list:
+        list_random_search = []     # type: [RandomizedSearchCV]
+
+        if Consts.ClassifierType.DECISION_TREE in classifier_types:
+            clf = DecisionTreeClassifier()
+
+        if Consts.ClassifierTypes.SVM in classifier_types:
+            clf = SVC()
+
+        if Consts.ClassifierTypes.RANDOM_FOREST in classifier_types:
+            clf = RandomForestClassifier()
+
+        [random_search.fit(self.dict_dfs[Consts.FileSubNames.X_TRAIN], self.dict_dfs[Consts.FileSubNames.Y_TRAIN])
+         for random_search in list_random_search]
+
+        return list_random_search
+
+    def apply_trained_models_on_validation(self, list_estimators: list, scoring: Consts.ScoreType ):
+
+        for model in list_estimators:
+            score = cross_val_score(model, self.dict_dfs[Consts.FileSubNames.X_VAL],
+                                    self.dict_dfs[Consts.FileSubNames.Y_VAL],
+                                    scoring=scoring.value)
+def ex_3():
+    m = Modeling()
+
+    # Use set 1
+    set = 1
+
+    # load the data from set 1.
+    m.load_data(Consts.FileNames.FILTERED_AND_SCALED, set)
+
+    # search for good parameters by using cross val.
+    list_random_search = m.parameter_search_classifiers()
+
+
+
+
+
 #
 #
 #     def create_classifiers_name_tuple(self, classifier_type_list: [ClassifierType]):
