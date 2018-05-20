@@ -141,13 +141,13 @@ MAP_VOTE_TO_NUMERIC = {
 
 class RandomGrid:
     # random forest grid
-    n_estimators = [int(x) for x in np.linspace(start=10, stop=1000, num=20)]
-    max_features = ['Auto', None]
+    n_estimators = [int(x) for x in np.linspace(start=10, stop=100, num=20)]
+    max_features = ['auto', "log2"]
     max_depth = [int(x) for x in np.linspace(2, 12, 11)]
     max_depth.append(None)
     min_samples_split = [2, 5, 10]
     min_samples_leaf = [5, 11, 21, 31]
-    bootstrap = [True, False]
+    bootstrap = [True]
     random_forest_grid = {'n_estimators': n_estimators, 'max_features': max_features, 'max_depth': max_depth,
                    'min_samples_split': min_samples_split, 'min_samples_leaf': min_samples_leaf, 'bootstrap': bootstrap}
     # decision tree grid
@@ -156,7 +156,7 @@ class RandomGrid:
     max_depth = [int(x) for x in np.linspace(2, 12, 11)]
     min_samples_split = [2, 5, 10]
     min_samples_leaf = [5, 11, 21, 31]
-    max_features = ['Auto', None]
+
     presort = [True, False]
     decision_tree_grid = {'criterion': criterion, 'splitter': splitter, 'max_depth': max_depth,
                           'min_samples_split': min_samples_split, 'min_samples_leaf': min_samples_leaf,
@@ -171,22 +171,24 @@ class RandomGrid:
 
 class ClassifierType(Enum):
     DECISION_TREE = 'decision_tree'
-    SVM = 'svm'
     RANDOM_FOREST = 'random forest'
 
 
 class ScoreType(Enum):
     # Classification
     F1 = 'f1'
-    F1_MACRO = 'f1_macro'
-    F1_MICRO = 'f1_micro'
-    F1_WEIGHTED = 'f1_weighted'
+    # F1_MACRO = 'f1_macro'
+    # F1_MICRO = 'f1_micro'
+    # F1_WEIGHTED = 'f1_weighted'
     ACCURACY = 'accuracy'
+    # RECALL = 'recall'
+    # PRECISION = 'precision'
+
     # Clustering
 
     # Regression
-    EXPLAINED_VARIANCE = 'explained_variance'
-    R2 = 'r2'
+    # EXPLAINED_VARIANCE = 'explained_variance'
+    # R2 = 'r2'
 
 
 class DataTypes(Enum):
@@ -218,6 +220,18 @@ class DirNames(Enum):
     FILTERED_AND_NUMERIC_NONAN = "datasets/{}/filtered_and_numeric_nonan"
     FILTERED_AND_SCALED = "datasets/{}/filtered_and_scaled"
     SUMMARY = "datasets/{}/summary"
+
+class EX3DirNames(Enum):
+    BASE = 'EX3_data'
+    SINGLE_ESTIMATOR = 'EX3_data\single_estimator'
+    MULTI_ESTIMATORS = 'EX3_data\multi_estimators'
+    SUMMARY = 'EX3_data\summary'
+
+class EX3FilNames(Enum):
+    WINNER = 'the_winner.csv'
+    PREDICTED_DISTRIBUTION = 'predicted_distribution.csv'
+    MOST_LIKELY_PER_PARTY = 'most_likely_to_vote_{}.csv'        # .format the name of the party
+    CONFUSION_MATRIX = 'confusion_matrix.csv'
 
 per_file = "/{}.csv"
 
