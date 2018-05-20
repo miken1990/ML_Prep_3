@@ -163,8 +163,8 @@ class RandomGrid:
                           'max_features': max_features, 'presort': presort}
     # SVM grid
     kernel = ['linear', 'rbf', 'poly']
-    C = [1.5, 10]
-    gamma = [1e-7, 1e-6, 1e-5, 1e-4]
+    C = [1, 5, 10, 20, 100]
+    gamma = [0.0001, 0.001, 0.01, 0.1, 0.2, 0.5]
     gamma.append('auto')
     svc_grid = {'kernel': kernel, 'C': C, 'gamma': gamma}
 
