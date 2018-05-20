@@ -1,6 +1,7 @@
 import numpy as np
 
-class Lms():
+
+class Lms:
     """ LMS class that implements Widrow-Hoff algorithm
     """
     def __init__(self, eta, n_iter, random_state=None):
@@ -11,8 +12,7 @@ class Lms():
 
     def fit(self, X, y):
         # initialize weights and bias
-        if self.weights is None:
-            self._initWeights((X.shape[1],1))
+        self._initWeights((X.shape[1],1))
         for i in range(self.n_iter):
             yPred = self._calcYPred(X)
             arrError = (y - yPred)
@@ -20,7 +20,7 @@ class Lms():
 
         return self
     def _calcYPred(self, X):
-        return np.dot(X, self.weights).flatten()
+        return (np.dot(X, self.weights)).flatten()
 
 
     def _initWeights(self, weightsShape):

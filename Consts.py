@@ -1,4 +1,5 @@
 from enum import Enum
+import numpy as np
 
 inf = 10000
 maxLeafNodes = 20
@@ -137,15 +138,68 @@ MAP_VOTE_TO_NUMERIC = {
     'Oranges': 11
 }
 
+
+class RandomGrid:
+    # random forest grid
+    n_estimators = [int(x) for x in np.linspace(start=10, stop=1000, num=20)]
+    max_features = ['Auto', None]
+    max_depth = [int(x) for x in np.linspace(2, 12, 11)]
+    max_depth.append(None)
+    min_samples_split = [2, 5, 10]
+    min_samples_leaf = [5, 11, 21, 31]
+    bootstrap = [True, False]
+    random_forest_grid = {'n_estimators': n_estimators, 'max_features': max_features, 'max_depth': max_depth,
+                   'min_samples_split': min_samples_split, 'min_samples_leaf': min_samples_leaf, 'bootstrap': bootstrap}
+    # decision tree grid
+    criterion = ["gini", "entropy"]
+    splitter = ["best", "random"]
+    max_depth = [int(x) for x in np.linspace(2, 12, 11)]
+    min_samples_split = [2, 5, 10]
+    min_samples_leaf = [5, 11, 21, 31]
+    max_features = ['Auto', None]
+    presort = [True, False]
+    decision_tree_grid = {'criterion': criterion, 'splitter': splitter, 'max_depth': max_depth,
+                          'min_samples_split': min_samples_split, 'min_samples_leaf': min_samples_leaf,
+                          'max_features': max_features, 'presort': presort}
+    # SVM grid
+    kernel = ['linear', 'rbf', 'poly']
+    C = [1.5, 10]
+    gamma = [1e-7, 1e-6, 1e-5, 1e-4]
+    gamma.append('auto')
+    svc_grid = {'kernel': kernel, 'C': C, 'gamma': gamma}
+
+
+class ClassifierType(Enum):
+    DECISION_TREE = 'decision_tree'
+    SVM = 'svm'
+    RANDOM_FOREST = 'random forest'
+
+
+class ScoreType(Enum):
+    # Classification
+    F1 = 'f1'
+    F1_MACRO = 'f1_macro'
+    F1_MICRO = 'f1_micro'
+    F1_WEIGHTED = 'f1_weighted'
+    ACCURACY = 'accuracy'
+    # Clustering
+
+    # Regression
+    EXPLAINED_VARIANCE = 'explained_variance'
+    R2 = 'r2'
+
+
 class DataTypes(Enum):
     TEST = 'test'
     VAL = 'val'
     TRAIN = 'train'
 
+
 class ClassifierTypes(Enum):
     TREE = "tree"
     SVM = "svm"
     RANDOM_FOREST = "random_forest"
+
 
 class FileSubNames(Enum):
     X_TRAIN = 'X_train'
