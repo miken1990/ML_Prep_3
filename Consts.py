@@ -224,15 +224,15 @@ class DirNames(Enum):
 
 class EX3DirNames(Enum):
     BASE = 'EX3_data'
-    SINGLE_ESTIMATOR = 'EX3_data\single_estimator'
-    MULTI_ESTIMATORS = 'EX3_data\multi_estimators'
-    SUMMARY = 'EX3_data\summary'
+    SINGLE_ESTIMATOR = 'EX3_data/single_estimator'
+    MULTI_ESTIMATORS = 'EX3_data/multi_estimators'
+    SUMMARY = 'EX3_data/summary'
 
 class EX3FilNames(Enum):
-    WINNER = 'the_winner.csv'
-    PREDICTED_DISTRIBUTION = 'predicted_distribution.csv'
-    MOST_LIKELY_PER_PARTY = 'most_likely_to_vote_{}.csv'        # .format the name of the party
-    CONFUSION_MATRIX = 'confusion_matrix.csv'
+    WINNER = '/the_winner.csv'
+    PREDICTED_DISTRIBUTION = '/predicted_distribution.csv'
+    MOST_LIKELY_PER_PARTY = '/most_likely_to_vote_{}.csv'        # .format the name of the party
+    CONFUSION_MATRIX = '/confusion_matrix.csv'
 
 per_file = "/{}.csv"
 

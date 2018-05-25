@@ -1,3 +1,4 @@
+import os
 from enum import Enum
 from time import time
 from typing import List
@@ -201,11 +202,16 @@ class Modeling:
         """
         pass
 
+def create_files_ex3():
+    for d in Consts.EX3DirNames:
+        if not os.path.isdir(d.value):
+            os.mkdir(d.value)
 
 def ex_3():
 
     use_the_same_model_for_all_tasks = True
-
+    create_files_ex3()
+    
     m = Modeling()
 
     # Use set 1
@@ -229,6 +235,7 @@ def ex_3():
 
 def main():
     ex_3()
+
 
 
 if __name__ == '__main__':
