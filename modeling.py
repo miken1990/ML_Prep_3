@@ -1,7 +1,7 @@
 import os
 from time import time
 from typing import List
-
+import datetime
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -10,7 +10,7 @@ from sklearn import metrics
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score, make_scorer
 from sklearn.model_selection import RandomizedSearchCV, learning_curve
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, export_graphviz
 
 import Consts
 
@@ -39,7 +39,7 @@ def f1_score_not_binary(y_true, y_pred):
 
 class Modeling:
     dict_dfs_np = {d: None for d in list(Consts.FileSubNames)}
-    do_print = True
+    do_print = False
 
     def __init__(self):
         self.dict_dfs_np = {d: None for d in list(Consts.FileSubNames)}
@@ -72,9 +72,9 @@ class Modeling:
     def allocate_rand_search_classifiers(self, classifier_types: {Consts.ClassifierType},
                                          scoring: Consts.ScoreType) -> [RandomizedSearchCV]:
         list_random_search = []  # type: [RandomizedSearchCV]
-        n_iter = 1 #20
+        n_iter = 100
         n_jobs = 4
-        cv = 4
+        cv = 10
         score = make_scorer(f1_score_not_binary, greater_is_better=True) if scoring == Consts.ScoreType.F1 else scoring.value
 
         random_state = Consts.listRandomStates[0]
@@ -132,19 +132,12 @@ class Modeling:
             random_search.fit(self.dict_dfs_np[Consts.FileSubNames.X_TRAIN], self.dict_dfs_np[Consts.FileSubNames.Y_TRAIN])
             end = time()
 
-            #self.log(f"{random_search.estimator.__repr__()} ran for {end-start} while fitting")
-            #self.report(random_search.cv_results_)
-
         return list_random_search
 
     def best_trained_model_by_validation(self, list_estimators: [RandomizedSearchCV]) -> (RandomizedSearchCV, float):
 
         list_model_score = [(model, model.score(self.dict_dfs_np[Consts.FileSubNames.X_VAL], self.dict_dfs_np[Consts.FileSubNames.Y_VAL])) for model in list_estimators]
-
         return max(list_model_score, key=lambda x: x[1])
-
-    def inspect_validate_curve(self):
-        pass
 
     def inspect_learning_curve(self, estimator):
         train_sizes, train_scores, valid_scores = learning_curve(
@@ -152,7 +145,6 @@ class Modeling:
             self.dict_dfs_np[Consts.FileSubNames.X_TRAIN],
             self.dict_dfs_np[Consts.FileSubNames.Y_TRAIN]
         )
-
 
     def search_scoring_functions(self):
 
@@ -182,8 +174,7 @@ class Modeling:
         with open(file_path, "w") as file:
             file.write(winner)
 
-
-    def predict_voters_distribution(self, estimator, test_data, test_label) -> None:
+    def predict_voters_distribution_conf_matrix(self, estimator, test_data, test_label) -> None:
         """
         save to a file in Consts
         :param estimator:
@@ -206,10 +197,7 @@ class Modeling:
                 result[i].sort()
                 string_to_write = Consts.MAP_NUMERIC_TO_VOTE[i] + f': {result[i]}'
                 file.write(string_to_write + '\n')
-
-        # save confusion matrix
-        self.save_test_confusion_matrix(y_pred, test_label)
-
+        return y_pred, test_label
 
     def predict_most_likely_voters(self, estimator) -> None:
         """
@@ -220,7 +208,7 @@ class Modeling:
         """
         pass
 
-    def save_test_confusion_matrix(self, y_pred, y_true) -> None:
+    def print_test_confusion_matrix_and_test_error(self, y_pred, y_true) -> None:
         """
         save to a file in Consts.
         :param estimator:
@@ -228,15 +216,25 @@ class Modeling:
         """
 
         print(metrics.confusion_matrix(y_true[Consts.VOTE_STR], y_pred))
+        y_true_arr = np.array(y_true[Consts.VOTE_STR])
+        list_equals = [1 if x == y_true_arr[index] else 0 for index, x in enumerate(y_pred)]
+        print(np.average(list_equals))
 
     def plot_estimator_learning_curve(self, estimator):
         X, Y = self.concatenate_train_and_val()
-
         title = "Learning Curves"
-
-        plot_learning_curve(estimator, title, X, Y, cv=6)
-
+        self.plot_learning_curve(estimator, title, X, Y, cv=6)
         plt.show()
+
+    def draw_tree(self, tree):
+        from sklearn.externals.six import StringIO
+        from IPython.display import Image, display
+        from sklearn.tree import export_graphviz
+        import pydotplus
+        self.log('Drawing Tree')
+        with open("decision_tree.dot", "w") as f:
+            f = export_graphviz(tree, out_file=f)
+
 
 #**********************************************************************************************************************#
 
@@ -323,8 +321,11 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
 
 def ex_3():
 
+    time_begining = datetime.datetime.now()
+    print(time_begining.time())
     use_the_same_model_for_all_tasks = True
     show_learning_curves = False
+    view_decision_tree = True
 
     create_files_ex3()
 
@@ -339,21 +340,27 @@ def ex_3():
     # search for good parameters by using cross val.
     # TODO: default scoring is ACCURACY! is this what we want?
     list_random_search = m.parameter_search_classifiers()
+    if view_decision_tree:
+        decistion_tree = list_random_search[0].best_estimator_
+        decistion_tree.fit(m.dict_dfs_np[Consts.FileSubNames.X_TRAIN], m.dict_dfs_np[Consts.FileSubNames.Y_TRAIN])
+        # print(decistion_tree)
+        m.draw_tree(decistion_tree)
 
     if use_the_same_model_for_all_tasks:
-
         best_estimator, best_estimator_score = m.best_trained_model_by_validation(list_random_search)
-
         if show_learning_curves:
             m.plot_estimator_learning_curve(best_estimator)
 
         m.predict_the_winner(best_estimator, m.dict_dfs_np[Consts.FileSubNames.X_TEST],
                              m.dict_dfs_np[Consts.FileSubNames.Y_TEST])
-        m.predict_voters_distribution(best_estimator, m.dict_dfs_pd[Consts.FileSubNames.X_TEST],
+        y_pred, y_true = m.predict_voters_distribution_conf_matrix(best_estimator, m.dict_dfs_pd[Consts.FileSubNames.X_TEST],
                              m.dict_dfs_pd[Consts.FileSubNames.Y_TEST])
+        m.print_test_confusion_matrix_and_test_error(y_pred, y_true)
         # m.predict_most_likely_voters(best_estimator)
         # m.save_test_confusion_matrix(best_estimator)
-
+    time_end = datetime.datetime.now()
+    duration = time_end - time_begining
+    print('run duration:' + str(duration.total_seconds()))
 #**********************************************************************************************************************#
 
 def main():
