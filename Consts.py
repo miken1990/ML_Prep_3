@@ -230,7 +230,7 @@ class EX3DirNames(Enum):
 
 class EX3FilNames(Enum):
     WINNER = '/the_winner.csv'
-    PREDICTED_DISTRIBUTION = '/predicted_distribution.csv'
+    PREDICTED_DISTRIBUTION = '/predicted_distribution.txt'
     MOST_LIKELY_PER_PARTY = '/most_likely_to_vote_{}.csv'        # .format the name of the party
     CONFUSION_MATRIX = '/confusion_matrix.csv'
 

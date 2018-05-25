@@ -183,22 +183,33 @@ class Modeling:
             file.write(winner)
 
 
-
     def predict_voters_distribution(self, estimator, test_data, test_label) -> None:
         """
         save to a file in Consts
         :param estimator:
         :return:
         """
-        # y_pred = estimator.predict(test_data)
-        # test_data['vote'] = y_pred
-        # result = dict()
-        # for i in range()
-        # for _, row in test_data.iterrows():
-        #     result[]
+        y_pred = estimator.predict(test_data)
+        test_data['vote'] = y_pred
+        result = dict()
+        for i in range(1, 12):
+            result[i] = []
 
+        for _, row in test_data.iterrows():
+            result[row['vote']].append(row[Consts.INDEX_COL])
 
+        # save predictions to file
+        file_path = Consts.EX3DirNames.SINGLE_ESTIMATOR.value + Consts.EX3FilNames.PREDICTED_DISTRIBUTION.value
+        with open(file_path, "w") as file:
+            for i in range(1, 12):
+                string_to_write = Consts.MAP_NUMERIC_TO_VOTE[i] + ': ['
+                # file.write(Consts.MAP_NUMERIC_TO_VOTE[i] + ': [')
+                string_to_write += ','.join(result[i])
+                string_to_write += ']'
+                file.write(string_to_write + '\n')
 
+        # save confusion matrix
+        self.save_test_confusion_matrix(y_pred, test_label)
 
 
     def predict_most_likely_voters(self, estimator) -> None:
@@ -210,13 +221,13 @@ class Modeling:
         """
         pass
 
-    def save_test_confusion_matrix(self, estimator) -> None:
+    def save_test_confusion_matrix(self, y_pred, y_true) -> None:
         """
         save to a file in Consts.
         :param estimator:
         :return:
         """
-        pass
+        print(metrics.confusion_matrix(y_true, y_pred))
 
 def create_files_ex3():
     for d in Consts.EX3DirNames:
