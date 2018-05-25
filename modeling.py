@@ -169,21 +169,37 @@ class Modeling:
         """
         return np.concatenate((self.dict_dfs[Consts.FileSubNames.X_TRAIN], self.dict_dfs[Consts.FileSubNames.X_VAL]), axis=0), np.concatenate((self.dict_dfs[Consts.FileSubNames.Y_TRAIN], self.dict_dfs[Consts.FileSubNames.Y_VAL]), axis=0)
 
-    def predict_the_winner(self, estimator) -> None:
+    def predict_the_winner(self, estimator, test_data, test_label) -> None:
         """
         save to a file!
         :param estimator:
-        :return:
+        :return: the name of the party with the majority of votes
         """
-        pass
+        y_pred = estimator.predict(test_data)
+        counts = np.bincount(y_pred)
+        winner = Consts[np.argmax(counts)]
+        file_path = Consts.EX3DirNames.SINGLE_ESTIMATOR.value + Consts.EX3FilNames.WINNER.value
+        with open(file_path, "w") as file:
+            file.write(winner)
 
-    def predict_voters_distribution(self, estimator) -> None:
+
+
+    def predict_voters_distribution(self, estimator, test_data, test_label) -> None:
         """
         save to a file in Consts
         :param estimator:
         :return:
         """
-        pass
+        # y_pred = estimator.predict(test_data)
+        # test_data['vote'] = y_pred
+        # result = dict()
+        # for i in range()
+        # for _, row in test_data.iterrows():
+        #     result[]
+
+
+
+
 
     def predict_most_likely_voters(self, estimator) -> None:
         """
