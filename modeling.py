@@ -166,7 +166,7 @@ class Modeling:
         """
         :return: X_train + X_val, Y_train + Y_val
         """
-        pass
+        return np.concatenate((self.dict_dfs[Consts.FileSubNames.X_TRAIN], self.dict_dfs[Consts.FileSubNames.X_VAL]), axis=0), np.concatenate((self.dict_dfs[Consts.FileSubNames.Y_TRAIN], self.dict_dfs[Consts.FileSubNames.Y_VAL]), axis=0)
 
     def predict_the_winner(self, estimator) -> None:
         """
@@ -227,9 +227,9 @@ def ex_3():
         m.predict_most_likely_voters(best_estimator)
         m.save_test_confusion_matrix(best_estimator)
 
-
 def main():
     ex_3()
+
 
 if __name__ == '__main__':
     main()
