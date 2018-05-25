@@ -1,19 +1,17 @@
 import os
-from enum import Enum
 from time import time
 from typing import List
 
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from pandas import read_csv
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score, make_scorer
+from sklearn.model_selection import RandomizedSearchCV, learning_curve
+from sklearn.tree import DecisionTreeClassifier
 
 import Consts
-import pandas as pd
-import numpy as np
-from pandas import read_csv
-from sklearn import metrics
-from sklearn.model_selection import cross_val_predict, RandomizedSearchCV, cross_val_score, learning_curve
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.svm import SVC
 
 """
 TODO list:
@@ -34,9 +32,14 @@ TODO list:
     2. plot validation graphs for each parm - we can see how params modify the accuracy, set the distribution 
        accordingly.
 """
+#**********************************************************************************************************************#
+
+# Scoring functions:
 
 def f1_score_not_binary(y_true, y_pred):
     return np.mean(f1_score(y_true, y_pred, average=None))
+
+#**********************************************************************************************************************#
 
 class Modeling:
     dict_dfs = {d: None for d in list(Consts.FileSubNames)}
@@ -53,7 +56,6 @@ class Modeling:
         """
         this method will load ready to use data for the training, validating, and testing sets.
         this implements stages 1, 3 and part of 6 in the assignment.
-        :param file_path: the location of the data csv.
         :return:
         """
         self.log(f"Loading the data from {base}")
@@ -72,9 +74,9 @@ class Modeling:
     def allocate_rand_search_classifiers(self, classifier_types: {Consts.ClassifierType},
                                          scoring: Consts.ScoreType) -> [RandomizedSearchCV]:
         list_random_search = []  # type: [RandomizedSearchCV]
-        n_iter = 1
-        n_jobs = 1
-        cv = 3
+        n_iter = 20
+        n_jobs = 4
+        cv = 4
         score = make_scorer(f1_score_not_binary, greater_is_better=True) if scoring == Consts.ScoreType.F1 else scoring.value
 
         random_state = Consts.listRandomStates[0]
@@ -152,7 +154,7 @@ class Modeling:
             self.dict_dfs[Consts.FileSubNames.X_TRAIN],
             self.dict_dfs[Consts.FileSubNames.Y_TRAIN]
         )
-
+        plot_learning_curve()
 
     def search_scoring_functions(self):
 
@@ -229,16 +231,105 @@ class Modeling:
         """
         print(metrics.confusion_matrix(y_true, y_pred))
 
+    def plot_estimator_learning_curve(self, estimator):
+        X, Y = self.concatenate_train_and_val()
+
+        title = "Learning Curves"
+
+        plot_learning_curve(estimator, title, X, Y, cv=6)
+
+        plt.show()
+
+#**********************************************************************************************************************#
+
 def create_files_ex3():
     for d in Consts.EX3DirNames:
         if not os.path.isdir(d.value):
             os.mkdir(d.value)
 
+#**********************************************************************************************************************#
+
+# http://scikit-learn.org/stable/auto_examples/model_selection/plot_learning_curve.html
+def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
+                        n_jobs=1, train_sizes=np.linspace(.1, 1.0, 5)):
+    """
+    from: http://scikit-learn.org/stable/auto_examples/model_selection/plot_learning_curve.html
+
+    Generate a simple plot of the test and training learning curve.
+
+    Parameters
+    ----------
+    estimator : object type that implements the "fit" and "predict" methods
+        An object of that type which is cloned for each validation.
+
+    title : string
+        Title for the chart.
+
+    X : array-like, shape (n_samples, n_features)
+        Training vector, where n_samples is the number of samples and
+        n_features is the number of features.
+
+    y : array-like, shape (n_samples) or (n_samples, n_features), optional
+        Target relative to X for classification or regression;
+        None for unsupervised learning.
+
+    ylim : tuple, shape (ymin, ymax), optional
+        Defines minimum and maximum yvalues plotted.
+
+    cv : int, cross-validation generator or an iterable, optional
+        Determines the cross-validation splitting strategy.
+        Possible inputs for cv are:
+          - None, to use the default 3-fold cross-validation,
+          - integer, to specify the number of folds.
+          - An object to be used as a cross-validation generator.
+          - An iterable yielding train/test splits.
+
+        For integer/None inputs, if ``y`` is binary or multiclass,
+        :class:`StratifiedKFold` used. If the estimator is not a classifier
+        or if ``y`` is neither binary nor multiclass, :class:`KFold` is used.
+
+        Refer :ref:`User Guide <cross_validation>` for the various
+        cross-validators that can be used here.
+
+    n_jobs : integer, optional
+        Number of jobs to run in parallel (default 1).
+    """
+    plt.figure()
+    plt.title(title)
+    if ylim is not None:
+        plt.ylim(*ylim)
+    plt.xlabel("Training examples")
+    plt.ylabel("Score")
+    train_sizes, train_scores, test_scores = learning_curve(
+        estimator, X, y, cv=cv, n_jobs=n_jobs, train_sizes=train_sizes)
+    train_scores_mean = np.mean(train_scores, axis=1)
+    train_scores_std = np.std(train_scores, axis=1)
+    test_scores_mean = np.mean(test_scores, axis=1)
+    test_scores_std = np.std(test_scores, axis=1)
+    plt.grid()
+
+    plt.fill_between(train_sizes, train_scores_mean - train_scores_std,
+                     train_scores_mean + train_scores_std, alpha=0.1,
+                     color="r")
+    plt.fill_between(train_sizes, test_scores_mean - test_scores_std,
+                     test_scores_mean + test_scores_std, alpha=0.1, color="g")
+    plt.plot(train_sizes, train_scores_mean, 'o-', color="r",
+             label="Training score")
+    plt.plot(train_sizes, test_scores_mean, 'o-', color="g",
+             label="Cross-validation score")
+
+    plt.legend(loc="best")
+    return plt
+
+#**********************************************************************************************************************#
+
 def ex_3():
 
     use_the_same_model_for_all_tasks = True
+    show_learning_curves = True
+
     create_files_ex3()
-    
+
     m = Modeling()
 
     # Use set 1
@@ -255,15 +346,18 @@ def ex_3():
 
         best_estimator, best_estimator_score = m.best_trained_model_by_validation(list_random_search)
 
+        if show_learning_curves:
+            m.plot_estimator_learning_curve(best_estimator)
+
         m.predict_the_winner(best_estimator)
         m.predict_voters_distribution(best_estimator)
         m.predict_most_likely_voters(best_estimator)
         m.save_test_confusion_matrix(best_estimator)
 
+#**********************************************************************************************************************#
+
 def main():
     ex_3()
-
-
 
 if __name__ == '__main__':
     main()
