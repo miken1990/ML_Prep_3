@@ -16,22 +16,17 @@ import Consts
 
 """
 TODO list:
-    1. concatenate_train_and_val - Alon
-    2. function receives an estimator and predicts the winner (from test)
-    3. function receives an estimator and predicts the distribution between predictions (from test)
-    4. function receives an estimator and predicts a list of most likely to vote for each party
+
+    1. function receives an estimator and predicts a list of most likely to vote for each party
         a. from fresh test set.
         b. save each list to a separate csv. (file names in new directory in Consts!)
-    5. confusion matrix
-    6. compare scoring functions (in a function) and save outputs to csv ot print. save the wanted scoring method.
+    2. compare scoring functions (in a function) and save outputs to csv ot print. save the wanted scoring method.
         - search the web for their plots.
         - explain why they are good for us.
-    7. create directories.
-    
+    3. Identify factors which by manipulating we can change the outcome of the elections
+
+    4. use different models for each of the prediction tasks
     if there is time:
-    1. plot learning graphs - capture a picture to explain why we choose to concatenate the train and validation set.
-    2. plot validation graphs for each parm - we can see how params modify the accuracy, set the distribution 
-       accordingly.
 """
 #**********************************************************************************************************************#
 
