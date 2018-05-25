@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from pandas import read_csv
+from sklearn import metrics
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import f1_score, make_scorer
 from sklearn.model_selection import RandomizedSearchCV, learning_curve
@@ -42,11 +43,12 @@ def f1_score_not_binary(y_true, y_pred):
 #**********************************************************************************************************************#
 
 class Modeling:
-    dict_dfs = {d: None for d in list(Consts.FileSubNames)}
+    dict_dfs_np = {d: None for d in list(Consts.FileSubNames)}
     do_print = True
 
     def __init__(self):
-        self.dict_dfs = {d: None for d in list(Consts.FileSubNames)}
+        self.dict_dfs_np = {d: None for d in list(Consts.FileSubNames)}
+        self.dict_dfs_pd = {d: None for d in list(Consts.FileSubNames)}
 
     def log(self, msg):
         if self.do_print:
@@ -63,9 +65,10 @@ class Modeling:
         for d in list(Consts.FileSubNames):
             file_location = base.value.format(set, d.value)
             if d in {Consts.FileSubNames.Y_TEST, Consts.FileSubNames.Y_VAL, Consts.FileSubNames.Y_TRAIN }:
-                self.dict_dfs[d] = self._load_data(file_location)[Consts.VOTE_STR].as_matrix().ravel()
+                self.dict_dfs_np[d] = self._load_data(file_location)[Consts.VOTE_STR].as_matrix().ravel()
             else:
-                self.dict_dfs[d] = self._load_data(file_location).as_matrix()
+                self.dict_dfs_np[d] = self._load_data(file_location).as_matrix()
+            self.dict_dfs_pd[d] = self._load_data(file_location)
 
     def _load_data(self, filePath):
         self.log(f"Loading {filePath}")
@@ -131,7 +134,7 @@ class Modeling:
 
         for random_search in list_random_search:
             start = time()
-            random_search.fit(self.dict_dfs[Consts.FileSubNames.X_TRAIN], self.dict_dfs[Consts.FileSubNames.Y_TRAIN])
+            random_search.fit(self.dict_dfs_np[Consts.FileSubNames.X_TRAIN], self.dict_dfs_np[Consts.FileSubNames.Y_TRAIN])
             end = time()
 
             #self.log(f"{random_search.estimator.__repr__()} ran for {end-start} while fitting")
@@ -141,7 +144,7 @@ class Modeling:
 
     def best_trained_model_by_validation(self, list_estimators: [RandomizedSearchCV]) -> (RandomizedSearchCV, float):
 
-        list_model_score = [(model, model.score(self.dict_dfs[Consts.FileSubNames.X_VAL], self.dict_dfs[Consts.FileSubNames.Y_VAL])) for model in list_estimators]
+        list_model_score = [(model, model.score(self.dict_dfs_np[Consts.FileSubNames.X_VAL], self.dict_dfs_np[Consts.FileSubNames.Y_VAL])) for model in list_estimators]
 
         return max(list_model_score, key=lambda x: x[1])
 
@@ -151,8 +154,8 @@ class Modeling:
     def inspect_learning_curve(self, estimator):
         train_sizes, train_scores, valid_scores = learning_curve(
             estimator,
-            self.dict_dfs[Consts.FileSubNames.X_TRAIN],
-            self.dict_dfs[Consts.FileSubNames.Y_TRAIN]
+            self.dict_dfs_np[Consts.FileSubNames.X_TRAIN],
+            self.dict_dfs_np[Consts.FileSubNames.Y_TRAIN]
         )
         plot_learning_curve()
 
@@ -169,7 +172,7 @@ class Modeling:
         """
         :return: X_train + X_val, Y_train + Y_val
         """
-        return np.concatenate((self.dict_dfs[Consts.FileSubNames.X_TRAIN], self.dict_dfs[Consts.FileSubNames.X_VAL]), axis=0), np.concatenate((self.dict_dfs[Consts.FileSubNames.Y_TRAIN], self.dict_dfs[Consts.FileSubNames.Y_VAL]), axis=0)
+        return np.concatenate((self.dict_dfs_np[Consts.FileSubNames.X_TRAIN], self.dict_dfs_np[Consts.FileSubNames.X_VAL]), axis=0), np.concatenate((self.dict_dfs_np[Consts.FileSubNames.Y_TRAIN], self.dict_dfs_np[Consts.FileSubNames.Y_VAL]), axis=0)
 
     def predict_the_winner(self, estimator, test_data, test_label) -> None:
         """
