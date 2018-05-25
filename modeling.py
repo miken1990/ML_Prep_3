@@ -77,7 +77,7 @@ class Modeling:
     def allocate_rand_search_classifiers(self, classifier_types: {Consts.ClassifierType},
                                          scoring: Consts.ScoreType) -> [RandomizedSearchCV]:
         list_random_search = []  # type: [RandomizedSearchCV]
-        n_iter = 20
+        n_iter = 1 #20
         n_jobs = 4
         cv = 4
         score = make_scorer(f1_score_not_binary, greater_is_better=True) if scoring == Consts.ScoreType.F1 else scoring.value
@@ -195,22 +195,21 @@ class Modeling:
         :return:
         """
         y_pred = estimator.predict(test_data)
-        test_data[Consts.VOTE_STR.value] = df_vote
+        test_data[Consts.VOTE_STR] = pd.Series(y_pred)
         result = dict()
         for i in range(1, 12):
             result[i] = []
 
         for _, row in test_data.iterrows():
-            result[row['vote']].append(row[Consts.INDEX_COL])
+            result[row[Consts.VOTE_STR]].append(row[Consts.INDEX_COL])
 
         # save predictions to file
         file_path = Consts.EX3DirNames.SINGLE_ESTIMATOR.value + Consts.EX3FilNames.PREDICTED_DISTRIBUTION.value
         with open(file_path, "w") as file:
             for i in range(1, 12):
-                string_to_write = Consts.MAP_NUMERIC_TO_VOTE[i] + ': ['
-                # file.write(Consts.MAP_NUMERIC_TO_VOTE[i] + ': [')
-                string_to_write += ','.join(result[i])
-                string_to_write += ']'
+                result[i] = [(int(item)) for item in result[i]]
+                result[i].sort()
+                string_to_write = Consts.MAP_NUMERIC_TO_VOTE[i] + f': {result[i]}'
                 file.write(string_to_write + '\n')
 
         # save confusion matrix
@@ -232,7 +231,8 @@ class Modeling:
         :param estimator:
         :return:
         """
-        print(metrics.confusion_matrix(y_true, y_pred))
+
+        print(metrics.confusion_matrix(y_true[Consts.VOTE_STR], y_pred))
 
     def plot_estimator_learning_curve(self, estimator):
         X, Y = self.concatenate_train_and_val()
@@ -329,7 +329,7 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
 def ex_3():
 
     use_the_same_model_for_all_tasks = True
-    show_learning_curves = True
+    show_learning_curves = False
 
     create_files_ex3()
 
@@ -352,14 +352,12 @@ def ex_3():
         if show_learning_curves:
             m.plot_estimator_learning_curve(best_estimator)
 
-        m.predict_the_winner(best_estimator)
-        m.predict_voters_distribution(best_estimator)
-        m.predict_the_winner(best_estimator, m.dict_dfs[Consts.FileSubNames.X_TEST],
-                             m.dict_dfs[Consts.FileSubNames.Y_TEST])
-        m.predict_voters_distribution(best_estimator, m.dict_dfs[Consts.FileSubNames.X_TEST],
-                             m.dict_dfs[Consts.FileSubNames.Y_TEST])
-        m.predict_most_likely_voters(best_estimator)
-        m.save_test_confusion_matrix(best_estimator)
+        m.predict_the_winner(best_estimator, m.dict_dfs_np[Consts.FileSubNames.X_TEST],
+                             m.dict_dfs_np[Consts.FileSubNames.Y_TEST])
+        m.predict_voters_distribution(best_estimator, m.dict_dfs_pd[Consts.FileSubNames.X_TEST],
+                             m.dict_dfs_pd[Consts.FileSubNames.Y_TEST])
+        # m.predict_most_likely_voters(best_estimator)
+        # m.save_test_confusion_matrix(best_estimator)
 
 #**********************************************************************************************************************#
 
