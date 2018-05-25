@@ -138,6 +138,7 @@ MAP_VOTE_TO_NUMERIC = {
     'Oranges': 11
 }
 
+MAP_NUMERIC_TO_VOTE = {v: k for k, v in MAP_VOTE_TO_NUMERIC.items()}
 
 class RandomGrid:
     # random forest grid
