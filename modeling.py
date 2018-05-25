@@ -157,7 +157,7 @@ class Modeling:
             self.dict_dfs_np[Consts.FileSubNames.X_TRAIN],
             self.dict_dfs_np[Consts.FileSubNames.Y_TRAIN]
         )
-        plot_learning_curve()
+
 
     def search_scoring_functions(self):
 
@@ -182,7 +182,7 @@ class Modeling:
         """
         y_pred = estimator.predict(test_data)
         counts = np.bincount(y_pred)
-        winner = Consts[np.argmax(counts)]
+        winner = Consts.MAP_NUMERIC_TO_VOTE[np.argmax(counts)]
         file_path = Consts.EX3DirNames.SINGLE_ESTIMATOR.value + Consts.EX3FilNames.WINNER.value
         with open(file_path, "w") as file:
             file.write(winner)
@@ -195,7 +195,7 @@ class Modeling:
         :return:
         """
         y_pred = estimator.predict(test_data)
-        test_data['vote'] = y_pred
+        test_data[Consts.VOTE_STR.value] = df_vote
         result = dict()
         for i in range(1, 12):
             result[i] = []
@@ -354,6 +354,10 @@ def ex_3():
 
         m.predict_the_winner(best_estimator)
         m.predict_voters_distribution(best_estimator)
+        m.predict_the_winner(best_estimator, m.dict_dfs[Consts.FileSubNames.X_TEST],
+                             m.dict_dfs[Consts.FileSubNames.Y_TEST])
+        m.predict_voters_distribution(best_estimator, m.dict_dfs[Consts.FileSubNames.X_TEST],
+                             m.dict_dfs[Consts.FileSubNames.Y_TEST])
         m.predict_most_likely_voters(best_estimator)
         m.save_test_confusion_matrix(best_estimator)
 
