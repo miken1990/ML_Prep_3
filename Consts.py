@@ -1,6 +1,6 @@
 from enum import Enum
 import numpy as np
-from sklearn.metrics import make_scorer
+from sklearn.metrics import make_scorer, confusion_matrix, f1_score
 
 inf = 10000
 maxLeafNodes = 20
@@ -187,14 +187,10 @@ def winner_scoring_data(y_true, y_pred):
     winner_tup = np.unravel_index(np.argmax(confusion_mat, axis=None), confusion_mat.shape)
     if winner_tup[0] != winner_tup[1]:
         return 0, 0, 0, 0
-    tp = confusion_mat[confusion_mat]
+    tp = confusion_mat[winner_tup]
     fp = np.sum(confusion_mat[:,winner_tup[0]]) - tp
     fn = np.sum(confusion_mat[winner_tup[0]]) - tp
-    tn = 0
-    for i in range(confusion_mat.shape[0]):
-        tn += confusion_mat[i,i]
-
-    tn -= tp
+    tn = np.sum(confusion_mat) - (tp + fn + fp)
 
     return tp, fp, fn, tn
 
@@ -210,7 +206,25 @@ def precision_winner_score(y_true, y_pred):
         return 0
     return tp / (tp + fp)
 
+def f1_winner_score(y_true, y_pred):
+    tp, fp, fn, tn = winner_scoring_data(y_true, y_pred)
+    if tp == 0:
+        return 0
+    precision = tp / (tp + fp)
+    recall = tp / (tp + fn)
+    return 2 * precision * recall / (precision + recall)
+
+def distribution_score_aux(y_true, y_pred):
+    confusion_mat = confusion_matrix(y_true, y_pred)
+    sum_rows = np.sum(confusion_mat, axis=1)
+    sum_cols = np.sum(confusion_mat, axis=0)
+    return np.mean([min(x,y)/max(x,y) for x, y in zip(sum_rows, sum_cols)])
+
+
 recall_winner = make_scorer(recall_winner_score)
+precision_winner = make_scorer(precision_winner_score)
+f1_winner = make_scorer(f1_winner_score)
+distribution_score = make_scorer(distribution_score_aux)
 # **********************************************************************************************************************#
 
 class ScoreType(Enum):
@@ -220,9 +234,13 @@ class ScoreType(Enum):
     # F1_MICRO = 'f1_micro'
     # F1_WEIGHTED = 'f1_weighted'
     ACCURACY = 'accuracy'
-    RECALL = 'recall'
-    PRECISION = 'precision'
 
+    # winner scoring:
+    WINNER_RECALL = recall_winner
+    WINNER_PRECISION = precision_winner
+    WINNER_F1 = f1_winner
+    # distribution:
+    DISTRIBUTION = distribution_score
     # Clustering
 
     # Regression
@@ -269,7 +287,7 @@ class EX3DirNames(Enum):
 class EX3FilNames(Enum):
     WINNER = '/the_winner.csv'
     PREDICTED_DISTRIBUTION = '/predicted_distribution.txt'
-    MOST_LIKELY_PER_PARTY = '/most_likely_to_vote_{}.csv'        # .format the name of the party
+    MOST_LIKELY_PARTY = '/most_likely_to_vote.txt'        # .format the name of the party
     CONFUSION_MATRIX = '/confusion_matrix.csv'
 
 per_file = "/{}.csv"
