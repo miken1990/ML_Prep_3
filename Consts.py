@@ -1,5 +1,6 @@
 from enum import Enum
 import numpy as np
+from sklearn.metrics import make_scorer
 
 inf = 10000
 maxLeafNodes = 20
@@ -174,16 +175,53 @@ class ClassifierType(Enum):
     DECISION_TREE = 'decision_tree'
     RANDOM_FOREST = 'random forest'
 
+# **********************************************************************************************************************#
+
+# Scoring functions:
+
+def f1_not_binary_score(y_true, y_pred):
+    return np.mean(f1_score(y_true, y_pred, average=None))
+
+def winner_scoring_data(y_true, y_pred):
+    confusion_mat = confusion_matrix(y_true, y_pred)
+    winner_tup = np.unravel_index(np.argmax(confusion_mat, axis=None), confusion_mat.shape)
+    if winner_tup[0] != winner_tup[1]:
+        return 0, 0, 0, 0
+    tp = confusion_mat[confusion_mat]
+    fp = np.sum(confusion_mat[:,winner_tup[0]]) - tp
+    fn = np.sum(confusion_mat[winner_tup[0]]) - tp
+    tn = 0
+    for i in range(confusion_mat.shape[0]):
+        tn += confusion_mat[i,i]
+
+    tn -= tp
+
+    return tp, fp, fn, tn
+
+def recall_winner_score(y_true, y_pred):
+    tp, fp, fn, tn = winner_scoring_data(y_true, y_pred)
+    if tp == 0:
+        return 0
+    return tp / (tp + fn)
+
+def precision_winner_score(y_true, y_pred):
+    tp, fp, fn, tn = winner_scoring_data(y_true, y_pred)
+    if tp == 0:
+        return 0
+    return tp / (tp + fp)
+
+recall_winner = make_scorer(recall_winner_score)
+# **********************************************************************************************************************#
 
 class ScoreType(Enum):
     # Classification
-    F1 = 'f1'
+    # F1 = 'f1'
     # F1_MACRO = 'f1_macro'
     # F1_MICRO = 'f1_micro'
     # F1_WEIGHTED = 'f1_weighted'
     ACCURACY = 'accuracy'
-    # RECALL = 'recall'
-    # PRECISION = 'precision'
+    RECALL = 'recall'
+    PRECISION = 'precision'
 
     # Clustering
 

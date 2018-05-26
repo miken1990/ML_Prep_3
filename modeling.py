@@ -8,7 +8,7 @@ import pandas as pd
 from pandas import read_csv
 from sklearn import metrics
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import f1_score, make_scorer
+from sklearn.metrics import f1_score, make_scorer, confusion_matrix
 from sklearn.model_selection import RandomizedSearchCV, learning_curve
 from sklearn.tree import DecisionTreeClassifier, export_graphviz
 
@@ -28,14 +28,9 @@ TODO list:
     4. use different models for each of the prediction tasks
     if there is time:
 """
-#**********************************************************************************************************************#
 
-# Scoring functions:
 
-def f1_score_not_binary(y_true, y_pred):
-    return np.mean(f1_score(y_true, y_pred, average=None))
-
-#**********************************************************************************************************************#
+# **********************************************************************************************************************#
 
 class Modeling:
     dict_dfs_np = {d: None for d in list(Consts.FileSubNames)}
@@ -59,7 +54,7 @@ class Modeling:
         # load train features and labels
         for d in list(Consts.FileSubNames):
             file_location = base.value.format(set, d.value)
-            if d in {Consts.FileSubNames.Y_TEST, Consts.FileSubNames.Y_VAL, Consts.FileSubNames.Y_TRAIN }:
+            if d in {Consts.FileSubNames.Y_TEST, Consts.FileSubNames.Y_VAL, Consts.FileSubNames.Y_TRAIN}:
                 self.dict_dfs_np[d] = self._load_data(file_location)[Consts.VOTE_STR].as_matrix().ravel()
             else:
                 self.dict_dfs_np[d] = self._load_data(file_location).as_matrix()
@@ -69,13 +64,12 @@ class Modeling:
         self.log(f"Loading {filePath}")
         return read_csv(filePath, header=0, keep_default_na=True)
 
-    def allocate_rand_search_classifiers(self, classifier_types: {Consts.ClassifierType},
-                                         scoring: Consts.ScoreType) -> [RandomizedSearchCV]:
+    def allocate_rand_search_classifiers(self, scoring: Consts.ScoreType) -> [RandomizedSearchCV]:
         list_random_search = []  # type: [RandomizedSearchCV]
         n_iter = 100
         n_jobs = 4
-        cv = 10
-        score = make_scorer(f1_score_not_binary, greater_is_better=True) if scoring == Consts.ScoreType.F1 else scoring.value
+        cv = 4
+        score = scoring.value
 
         random_state = Consts.listRandomStates[0]
 
@@ -122,21 +116,24 @@ class Modeling:
                 print("Parameters: {0}".format(results['params'][candidate]))
                 print("")
 
-    def parameter_search_classifiers(self, classifier_types: Consts.ClassifierType=set(Consts.ClassifierType),
-                                     scoring: Consts.ScoreType=Consts.ScoreType.ACCURACY) -> list:
+    def parameter_search_classifiers(self, scoring: Consts.ScoreType = Consts.ScoreType.ACCURACY) -> list:
 
-        list_random_search: List[RandomizedSearchCV] = self.allocate_rand_search_classifiers(classifier_types, scoring)
+        list_random_search: List[RandomizedSearchCV] = self.allocate_rand_search_classifiers(scoring)
 
         for random_search in list_random_search:
             start = time()
-            random_search.fit(self.dict_dfs_np[Consts.FileSubNames.X_TRAIN], self.dict_dfs_np[Consts.FileSubNames.Y_TRAIN])
+            random_search.fit(self.dict_dfs_np[Consts.FileSubNames.X_TRAIN],
+                              self.dict_dfs_np[Consts.FileSubNames.Y_TRAIN])
             end = time()
 
         return list_random_search
 
     def best_trained_model_by_validation(self, list_estimators: [RandomizedSearchCV]) -> (RandomizedSearchCV, float):
 
-        list_model_score = [(model, model.score(self.dict_dfs_np[Consts.FileSubNames.X_VAL], self.dict_dfs_np[Consts.FileSubNames.Y_VAL])) for model in list_estimators]
+        list_model_score = [(model, model.score(self.dict_dfs_np[Consts.FileSubNames.X_VAL],
+                                                self.dict_dfs_np[Consts.FileSubNames.Y_VAL])) for model in
+                            list_estimators]
+
         return max(list_model_score, key=lambda x: x[1])
 
     def inspect_learning_curve(self, estimator):
@@ -145,6 +142,7 @@ class Modeling:
             self.dict_dfs_np[Consts.FileSubNames.X_TRAIN],
             self.dict_dfs_np[Consts.FileSubNames.Y_TRAIN]
         )
+
 
     def search_scoring_functions(self):
 
@@ -159,7 +157,10 @@ class Modeling:
         """
         :return: X_train + X_val, Y_train + Y_val
         """
-        return np.concatenate((self.dict_dfs_np[Consts.FileSubNames.X_TRAIN], self.dict_dfs_np[Consts.FileSubNames.X_VAL]), axis=0), np.concatenate((self.dict_dfs_np[Consts.FileSubNames.Y_TRAIN], self.dict_dfs_np[Consts.FileSubNames.Y_VAL]), axis=0)
+        return np.concatenate(
+            (self.dict_dfs_np[Consts.FileSubNames.X_TRAIN], self.dict_dfs_np[Consts.FileSubNames.X_VAL]),
+            axis=0), np.concatenate(
+            (self.dict_dfs_np[Consts.FileSubNames.Y_TRAIN], self.dict_dfs_np[Consts.FileSubNames.Y_VAL]), axis=0)
 
     def predict_the_winner(self, estimator, test_data, test_label) -> None:
         """
@@ -243,7 +244,8 @@ def create_files_ex3():
         if not os.path.isdir(d.value):
             os.mkdir(d.value)
 
-#**********************************************************************************************************************#
+
+# **********************************************************************************************************************#
 
 # http://scikit-learn.org/stable/auto_examples/model_selection/plot_learning_curve.html
 def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
@@ -317,7 +319,8 @@ def plot_learning_curve(estimator, title, X, y, ylim=None, cv=None,
     plt.legend(loc="best")
     return plt
 
-#**********************************************************************************************************************#
+
+# **********************************************************************************************************************#
 
 def ex_3():
 
@@ -339,32 +342,41 @@ def ex_3():
 
     # search for good parameters by using cross val.
     # TODO: default scoring is ACCURACY! is this what we want?
-    list_random_search = m.parameter_search_classifiers()
-    if view_decision_tree:
-        decistion_tree = list_random_search[0].best_estimator_
-        decistion_tree.fit(m.dict_dfs_np[Consts.FileSubNames.X_TRAIN], m.dict_dfs_np[Consts.FileSubNames.Y_TRAIN])
-        # print(decistion_tree)
-        m.draw_tree(decistion_tree)
+
+
 
     if use_the_same_model_for_all_tasks:
+        list_random_search = m.parameter_search_classifiers()
+        if view_decision_tree:
+            decistion_tree = list_random_search[0].best_estimator_
+            decistion_tree.fit(m.dict_dfs_np[Consts.FileSubNames.X_TRAIN], m.dict_dfs_np[Consts.FileSubNames.Y_TRAIN])
+            # print(decistion_tree)
+            m.draw_tree(decistion_tree)
+
         best_estimator, best_estimator_score = m.best_trained_model_by_validation(list_random_search)
+
         if show_learning_curves:
             m.plot_estimator_learning_curve(best_estimator)
 
         m.predict_the_winner(best_estimator, m.dict_dfs_np[Consts.FileSubNames.X_TEST],
                              m.dict_dfs_np[Consts.FileSubNames.Y_TEST])
-        y_pred, y_true = m.predict_voters_distribution_conf_matrix(best_estimator, m.dict_dfs_pd[Consts.FileSubNames.X_TEST],
-                             m.dict_dfs_pd[Consts.FileSubNames.Y_TEST])
+        y_pred, y_true = m.predict_voters_distribution_conf_matrix(best_estimator,
+                                                                   m.dict_dfs_pd[Consts.FileSubNames.X_TEST],
+                                                                   m.dict_dfs_pd[Consts.FileSubNames.Y_TEST])
         m.print_test_confusion_matrix_and_test_error(y_pred, y_true)
         # m.predict_most_likely_voters(best_estimator)
         # m.save_test_confusion_matrix(best_estimator)
-    time_end = datetime.datetime.now()
-    duration = time_end - time_begining
-    print('run duration:' + str(duration.total_seconds()))
-#**********************************************************************************************************************#
+    else:
+        # list_random_search_recall = m.parameter_search_classifiers(scoring=Consts.ScoreType.RECALL)
+        list_random_search_precision = m.parameter_search_classifiers(scoring=Consts.ScoreType.PRECISION)
+
+
+
+# **********************************************************************************************************************#
 
 def main():
     ex_3()
+
 
 if __name__ == '__main__':
     main()
