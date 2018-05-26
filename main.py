@@ -1,15 +1,9 @@
 import os
-from enum import Enum
-
-import pandas as pd
 
 import Consts
-import relief
 from ElectionsDataPreperation import ElectionsDataPreperation as EDP, DataSplit
+from modeling import ex_3
 from scale_data import ScaleData
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sfs import sfsAux
 
 
 class Stages:
@@ -26,6 +20,11 @@ class Stages:
     do_sfs = False
     do_relief = False
     get_correlations = False
+    use_the_same_model_for_all_tasks = False
+    use_multi_models_for_tasks: bool = False
+    show_learning_curves: bool = False
+    view_decision_tree: bool = False
+    print_ex3: bool = False
 
 
 amount_of_sets = 1
@@ -59,8 +58,7 @@ def log(msg):
     if Stages.do_print:
         print(msg)
 
-
-def main():
+def ex2_remainder():
     create_files()
 
     # FIRST STEP: Get the data and split it in to 2 groups of 3 data sets.
@@ -99,12 +97,10 @@ def main():
         log("Stage 4: Fixing nan and outliers")
 
         for i in range(1, amount_of_sets + 1):
-
             secondStepPrep_dict[i] = load_edp_from(Consts.FileNames.FILTERED_AND_NUMERIC_NAN.value, i)
 
             secondStepPrep_dict[i].fix_nan_and_outliers()
             secondStepPrep_dict[i].save_labels(Consts.FileNames.FILTERED_AND_NUMERIC_NONAN.value, i)
-
 
     if Stages.do_scale:
         log("Stage 5: Scale the data")
@@ -127,85 +123,18 @@ def main():
 
             second_corr = secondStepPrep_dict[i].trainData.corr()
             if Stages.get_correlations:
-                second_corr.to_csv(Consts.FileNames.SUMMARY.value.format(i,'Scaled_corr_diff'))
+                second_corr.to_csv(Consts.FileNames.SUMMARY.value.format(i, 'Scaled_corr_diff'))
                 (second_corr - initial_corr).abs().to_csv(Consts.FileNames.SUMMARY.value.format(i, 'Scaled_corr_diff'))
 
-    if Stages.do_feature_selection:
-        if Stages.do_print:
-            print("Stage 6: Selecting relevant features")
-        # relief + sfs + correlation matrix
-        for i in range(1, amount_of_sets + 1):
-            # load the data from the previous stage
-            if Stages.do_feature_selection_load_data:
-                secondStepPrep_dict[i] = load_edp_from(Consts.FileNames.FILTERED_AND_SCALED.value, i)
-
-            # TODO: Alon - Mike what's the meaning of the following lines?
-            secondStepPrep_dict[i].trainLabels = secondStepPrep_dict[i].trainLabels[[Consts.VOTE_STR]]
-            secondStepPrep_dict[i].valLabels = secondStepPrep_dict[i].valLabels[[Consts.VOTE_STR]]
-            secondStepPrep_dict[i].testLabels = secondStepPrep_dict[i].testLabels[[Consts.VOTE_STR]]
-
-            if Stages.do_relief:
-                relief_dir = Consts.DirNames.SUMMARY.value.format(i)
-                N = 100
-                tau = 0
-
-                relief_chosen_set = relief.relief_alg(secondStepPrep_dict[i].trainData,
-                                                      secondStepPrep_dict[i].trainLabels, N, tau)
-                pd.DataFrame([f for f in relief_chosen_set]).to_csv(
-                    relief_dir + "/N_{}_tau_{}.csv".format(N, tau))
-                secondStepPrep_dict[i].trainData = secondStepPrep_dict[i].trainData[relief_chosen_set]
-                secondStepPrep_dict[i].valData = secondStepPrep_dict[i].valData[relief_chosen_set]
-                secondStepPrep_dict[i].testData = secondStepPrep_dict[i].testData[relief_chosen_set]
-            # Remove features with a very high correlation
-            if Stages.do_removeAbove95Corr:
-                secondStepPrep_dict[i].removeAbove95Corr()
-
-            trainData = secondStepPrep_dict[i].trainData.copy()
-            valData = secondStepPrep_dict[i].valData.copy()
-            testData = secondStepPrep_dict[i].testData.copy()
-
-            if Stages.do_sfs:
-                # create a random forest for the sfs
-                rClf = RandomForestClassifier()
-                max_amount_of_features = 23
-                bestFeatures = sfsAux(rClf, secondStepPrep_dict[i].trainData, secondStepPrep_dict[i].trainLabels,
-                                      max_amount_of_features)
-                print("Sfs chose: {}".format(",".join(bestFeatures)))
-                secondStepPrep_dict[i].trainData = secondStepPrep_dict[i].trainData[bestFeatures]
-                secondStepPrep_dict[i].valData = secondStepPrep_dict[i].valData[bestFeatures]
-                secondStepPrep_dict[i].testData = secondStepPrep_dict[i].testData[bestFeatures]
-                pd.DataFrame(bestFeatures).to_csv(
-                    Consts.FileNames.SUMMARY.value.format(i, "Best_chosen_features_random_forest")
-                )
-                secondStepPrep_dict[i].trainData.to_csv(
-                    Consts.FileNames.SUMMARY.value.format(i, "Best_chosen_train_random_forest")
-                )
-                secondStepPrep_dict[i].valData.to_csv(
-                    Consts.FileNames.SUMMARY.value.format(i, "Best_val_chosen_random_forest")
-                )
-                secondStepPrep_dict[i].testData.to_csv(
-                    Consts.FileNames.SUMMARY.value.format(i, "Best_test_chosen_random_forest")
-                )
-                # create svm for the sfs
-
-                svm = SVC()
-                bestFeatures = sfsAux(svm, trainData, secondStepPrep_dict[i].trainLabels,
-                                      max_amount_of_features)
-                trainData = trainData[bestFeatures]
-                valData = valData[bestFeatures]
-                testData = testData[bestFeatures]
-                pd.DataFrame(bestFeatures).to_csv(
-                    Consts.FileNames.SUMMARY.value.format(i, "Best_chosen_features_svm")
-                )
-                trainData.to_csv(
-                    Consts.FileNames.SUMMARY.value.format(i, "Best_chosen_train_svm")
-                )
-                valData.to_csv(
-                    Consts.FileNames.SUMMARY.value.format(i, "Best_val_chosen_svm")
-                )
-                testData.to_csv(
-                    Consts.FileNames.SUMMARY.value.format(i, "Best_test_chosen_svm")
-                )
+def main():
+   ex2_remainder()
+   ex_3(
+       use_the_same_model_for_all_tasks=Stages.use_the_same_model_for_all_tasks,
+       show_learning_curves=Stages.show_learning_curves,
+       use_multi_models_for_tasks=Stages.use_multi_models_for_tasks,
+       view_decision_tree=Stages.view_decision_tree,
+       print_ex3=Stages.print_ex3
+   )
 
 
 if __name__ == "__main__":
