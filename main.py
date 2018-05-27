@@ -13,18 +13,19 @@ class Stages:
     do_filter_features = False
     do_swap_to_numeric = False
     do_fix_nan_and_outliers = False
-    do_scale = True
+    do_scale = False
     do_feature_selection = False
     do_feature_selection_load_data = False
     do_removeAbove95Corr = False
     do_sfs = False
     do_relief = False
     get_correlations = False
+    # EX3
     use_the_same_model_for_all_tasks = False
-    use_multi_models_for_tasks: bool = False
-    show_learning_curves: bool = False
-    view_decision_tree: bool = False
-    print_ex3: bool = False
+    use_multi_models_for_tasks: bool = True
+    show_learning_curves: bool = True
+    view_decision_tree: bool = True
+    print_ex3: bool = True
 
 
 amount_of_sets = 1

@@ -61,9 +61,9 @@ class Modeling:
 
     def allocate_rand_search_classifiers(self, scoring: Consts.ScoreType) -> [RandomizedSearchCV]:
         list_random_search = []  # type: [RandomizedSearchCV]
-        n_iter = 30
-        n_jobs = 4
-        cv = 10
+        n_iter = 100
+        n_jobs = 2
+        cv = 3
         score = scoring.value
 
         random_state = Consts.listRandomStates[0]
@@ -223,7 +223,7 @@ class Modeling:
         X, Y = self.concatenate_train_and_val()
         title = "Learning Curves " + title
         plot_learning_curve(estimator, title, X, Y, cv=6)
-        plt.show()
+        plt.show(block=False)
 
     def draw_tree(self, tree):
         from sklearn.externals.six import StringIO
@@ -396,14 +396,14 @@ def ex_3(use_the_same_model_for_all_tasks: bool, use_multi_models_for_tasks: boo
         y_pred, _ = m.predict_voters_distribution(distribution_estimator,
                                                m.dict_dfs_pd[Consts.FileSubNames.X_TEST],
                                                m.dict_dfs_pd[Consts.FileSubNames.Y_TEST],
-                                               Consts.EX3DirNames.SINGLE_ESTIMATOR)
+                                               Consts.EX3DirNames.MULTI_ESTIMATORS)
         m.log("Confusion Matrix for the distribution estimator")
         m.print_test_confusion_matrix_and_test_error(y_pred, y_true)
         m.title("Predicting the Most Likely")
         y_pred, _ = m.predict_most_likely_voters(accuracy_estimator,
                                                       m.dict_dfs_pd[Consts.FileSubNames.X_TEST],
                                                       m.dict_dfs_pd[Consts.FileSubNames.Y_TEST],
-                                                      Consts.EX3DirNames.SINGLE_ESTIMATOR)
+                                                      Consts.EX3DirNames.MULTI_ESTIMATORS)
         m.log("Confusion Matrix for the Accuracy estimator")
         m.print_test_confusion_matrix_and_test_error(y_pred, y_true)
 
