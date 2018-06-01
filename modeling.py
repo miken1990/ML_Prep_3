@@ -61,7 +61,7 @@ class Modeling:
 
     def allocate_rand_search_classifiers(self, scoring: Consts.ScoreType) -> [RandomizedSearchCV]:
         list_random_search = []  # type: [RandomizedSearchCV]
-        n_iter = 100
+        n_iter = 10
         n_jobs = 2
         cv = 3
         score = scoring.value

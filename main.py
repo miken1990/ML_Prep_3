@@ -21,7 +21,7 @@ class Stages:
     do_relief = False
     get_correlations = False
     # EX3
-    use_the_same_model_for_all_tasks = False
+    use_the_same_model_for_all_tasks = True
     use_multi_models_for_tasks: bool = True
     show_learning_curves: bool = True
     view_decision_tree: bool = True
