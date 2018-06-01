@@ -170,6 +170,11 @@ class RandomGrid:
     gamma.append('auto')
     svc_grid = {'kernel': kernel, 'C': C, 'gamma': gamma}
 
+    # KNN grid
+    k_n_neighbors = list(range(1,31))
+    k_weight = ['uniform', 'distance']
+    knn_grid = {'n_neighbors': k_n_neighbors, 'weight': k_weight}
+
 
 class ClassifierType(Enum):
     DECISION_TREE = 'decision_tree'
@@ -248,16 +253,19 @@ class ScoreType(Enum):
     # R2 = 'r2'
 
 
-class DataTypes(Enum):
-    TEST = 'test'
-    VAL = 'val'
-    TRAIN = 'train'
-
-
 class ClassifierTypes(Enum):
     TREE = "tree"
     SVM = "svm"
     RANDOM_FOREST = "random_forest"
+    KNN = 'knn'
+
+
+# **********************************************************************************************************************#
+
+class DataTypes(Enum):
+    TEST = 'test'
+    VAL = 'val'
+    TRAIN = 'train'
 
 
 class FileSubNames(Enum):
