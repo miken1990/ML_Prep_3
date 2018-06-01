@@ -1,5 +1,6 @@
 from enum import Enum
 import numpy as np
+from scipy.stats import expon
 from sklearn.metrics import make_scorer, confusion_matrix, f1_score
 
 inf = 10000
@@ -164,16 +165,12 @@ class RandomGrid:
                           'min_samples_split': min_samples_split, 'min_samples_leaf': min_samples_leaf,
                           'max_features': max_features, 'presort': presort}
     # SVM grid
-    kernel = ['linear', 'rbf', 'poly']
-    C = [1, 5, 10, 20, 100]
-    gamma = [0.0001, 0.001, 0.01, 0.1, 0.2, 0.5]
-    gamma.append('auto')
-    svc_grid = {'kernel': kernel, 'C': C, 'gamma': gamma}
+    svc_grid = dict(C=expon(scale=10), gamma=expon(scale=0.1), kernel=['linear', 'rbf', 'poly'])
 
     # KNN grid
     k_n_neighbors = list(range(1,31))
-    k_weight = ['uniform', 'distance']
-    knn_grid = {'n_neighbors': k_n_neighbors, 'weight': k_weight}
+    k_weights = ['uniform', 'distance']
+    knn_grid = {'n_neighbors': k_n_neighbors, 'weights': k_weights}
 
 
 class ClassifierType(Enum):
